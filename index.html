@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Baltic Global — US Fleet</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Montserrat:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <!-- Leaflet Map -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -110,21 +110,43 @@ try {
 </script>
 <style>
 :root{
-  --black:#060606;--black-2:#0c0c0c;--black-3:#121212;--black-4:#181818;--black-5:#202020;
-  --gold:#c9a84c;--gold-lt:#e8c96a;--gold-10:rgba(201,168,76,.10);--gold-20:rgba(201,168,76,.20);--gold-30:rgba(201,168,76,.30);
-  --green:#4caf7d;--green-10:rgba(76,175,125,.10);--green-30:rgba(76,175,125,.30);
-  --amber:#c9873a;--amber-10:rgba(201,135,58,.10);
-  --red:#c94c4c;--red-10:rgba(201,76,76,.10);--red-30:rgba(201,76,76,.30);
-  --t1:#f2e8d0;--t2:#7a6a52;--t3:#32281a;
-  --serif:'Cormorant Garamond',Georgia,serif;
-  --sans:'Montserrat',sans-serif;
-  --mono:'JetBrains Mono',monospace;
+  /* Light professional palette */
+  --black:   #ffffff;   /* was deep black → now white (main bg) */
+  --black-2: #f5f7fa;   /* was dark panel → now light gray panel */
+  --black-3: #edf0f5;   /* was dark card  → now lighter card */
+  --black-4: #e4e8ef;   /* was dark elevated → slightly darker */
+  --black-5: #d8dde8;   /* was darkest → border gray */
+
+  /* Brand blue (replaces gold) */
+  --gold:    #2563eb;   /* primary blue */
+  --gold-lt: #3b82f6;   /* lighter blue */
+  --gold-10: rgba(37,99,235,.08);
+  --gold-20: rgba(37,99,235,.15);
+  --gold-30: rgba(37,99,235,.25);
+
+  /* Status colors */
+  --green:   #16a34a;
+  --green-10:rgba(22,163,74,.10);
+  --green-30:rgba(22,163,74,.30);
+  --amber:   #d97706;
+  --amber-10:rgba(217,119,6,.10);
+  --red:     #dc2626;
+  --red-10:  rgba(220,38,38,.10);
+  --red-30:  rgba(220,38,38,.30);
+
+  /* Text colors */
+  --t1: #0f172a;   /* dark navy — primary text */
+  --t2: #64748b;   /* slate — secondary text */
+  --t3: #94a3b8;   /* light slate — muted */
+
+  --serif:'Inter',sans-serif;
+  --sans: 'Inter',sans-serif;
+  --mono: 'JetBrains Mono',monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{background:var(--black);color:var(--t1);font-family:var(--sans);overflow:hidden;height:100vh;}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:.3;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");}
+/* noise removed for light theme */
 input,button,select,textarea{font-family:var(--sans);}
 button{cursor:pointer;}
 
@@ -132,6 +154,326 @@ button{cursor:pointer;}
 ::-webkit-scrollbar{width:3px;height:3px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--gold-20);border-radius:2px;}
+
+/* ══════════════════════════════════════════════════
+   LIGHT PROFESSIONAL THEME OVERRIDES
+   ══════════════════════════════════════════════════ */
+
+/* Global shadow & border tone */
+* { border-color: inherit; }
+
+/* Softer scrollbar */
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
+::-webkit-scrollbar-thumb:hover { background:#94a3b8; }
+
+/* ── Topnav ── */
+.topnav {
+  background:#ffffff !important;
+  border-bottom:1px solid #e2e8f0 !important;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);
+}
+.topnav::after { display:none !important; }
+.tn-brand { color:#0f172a !important; letter-spacing:.5px !important; font-size:15px !important; font-weight:700 !important; }
+.tn-sub { color:var(--gold) !important; letter-spacing:1px !important; }
+.tn-emblem::before { border-color:var(--gold-30) !important; }
+.tn-emblem-core { background:var(--gold) !important; }
+.tn-status span { color:#64748b !important; }
+.tn-clock { color:var(--gold) !important; font-size:12px !important; }
+.tn-role-badge.manager { color:var(--gold) !important; border-color:var(--gold-30) !important; background:var(--gold-10) !important; }
+.tn-role-badge.driver  { color:var(--green) !important; border-color:var(--green-30) !important; background:var(--green-10) !important; }
+.tn-user { background:#f8fafc !important; border-color:#e2e8f0 !important; }
+.tn-user:hover { border-color:var(--gold) !important; }
+.tn-uname { color:#0f172a !important; }
+.tn-av { background:linear-gradient(135deg,var(--gold),var(--gold-lt)) !important; color:#fff !important; }
+.tn-av.drv { background:linear-gradient(135deg,var(--green),#15803d) !important; }
+.tn-dot { background:var(--green) !important; box-shadow:0 0 6px var(--green) !important; }
+
+/* ── Sidebar ── */
+.mgr-sidebar, .f-sidebar {
+  background:#ffffff !important;
+  border-right:1px solid #e2e8f0 !important;
+}
+.f-sidebar-hd, .mgr-sidebar-top { border-bottom:1px solid #f1f5f9 !important; }
+.sec-lbl, .f-sec-lbl { color:var(--gold) !important; }
+.sec-lbl::after, .f-sec-lbl::after { background:linear-gradient(90deg,#e2e8f0,transparent) !important; }
+
+/* Stat tiles */
+.stat-tile, .f-stat {
+  background:#f8fafc !important;
+  border:1px solid #e2e8f0 !important;
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
+}
+.stat-tile:hover, .f-stat:hover { border-color:#cbd5e1 !important; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.stat-n, .f-stat-n { font-weight:700 !important; }
+.stat-l, .f-stat-l { color:#94a3b8 !important; }
+
+/* Driver cards */
+.dcard, .f-dcard {
+  background:#ffffff !important;
+  border:1px solid #f1f5f9 !important;
+}
+.dcard:hover, .f-dcard:hover { background:#f8fafc !important; border-color:#e2e8f0 !important; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+.dcard.sel, .f-dcard.sel { background:var(--gold-10) !important; border-color:var(--gold) !important; }
+.dname, .f-dname { color:#0f172a !important; font-weight:600 !important; }
+.dveh, .f-dveh { color:#94a3b8 !important; }
+.dmeta, .f-dmeta { color:#94a3b8 !important; }
+.dcard[data-s="active"] .dav, .f-dcard[data-s="active"] .f-dav { color:var(--green) !important; border-color:var(--green-30) !important; background:var(--green-10) !important; }
+.dcard[data-s="idle"] .dav, .f-dcard[data-s="idle"] .f-dav { color:var(--amber) !important; border-color:rgba(217,119,6,.25) !important; background:var(--amber-10) !important; }
+.dcard[data-s="offline"] .dav, .f-dcard[data-s="offline"] .f-dav { color:#94a3b8 !important; border-color:#e2e8f0 !important; background:#f8fafc !important; }
+.dcard.sel .dav, .f-dcard.sel .f-dav { color:var(--gold) !important; border-color:var(--gold-30) !important; background:var(--gold-10) !important; }
+.dbadge, .f-dbadge { font-weight:600 !important; }
+
+/* Search */
+.mgr-search { background:#f8fafc !important; border:1px solid #e2e8f0 !important; color:#0f172a !important; border-radius:6px !important; }
+.mgr-search:focus { border-color:var(--gold) !important; box-shadow:0 0 0 3px var(--gold-10) !important; }
+.mgr-search::placeholder { color:#cbd5e1 !important; }
+
+/* Right panel */
+.mgr-rpanel, .f-rpanel {
+  background:#ffffff !important;
+  border-left:1px solid #e2e8f0 !important;
+}
+.rtabs, .f-tabs {
+  background:#f8fafc !important;
+  border-bottom:1px solid #e2e8f0 !important;
+}
+.rtab, .f-tab {
+  color:#94a3b8 !important;
+  font-weight:500 !important;
+}
+.rtab:hover, .f-tab:hover { color:#64748b !important; background:#f1f5f9 !important; }
+.rtab.on, .f-tab.on {
+  color:var(--gold) !important;
+  border-bottom-color:var(--gold) !important;
+  background:#ffffff !important;
+  font-weight:700 !important;
+}
+
+/* Panel cells */
+.ph { border-bottom:1px solid #f1f5f9 !important; }
+.pav { background:linear-gradient(135deg,var(--gold-10),var(--gold-20)) !important; border:1px solid var(--gold-20) !important; color:var(--gold) !important; font-weight:700 !important; }
+.pname { color:#0f172a !important; font-weight:700 !important; }
+.picell { background:#f8fafc !important; border:1px solid #f1f5f9 !important; border-radius:4px !important; }
+.picell:hover { border-color:#e2e8f0 !important; }
+.pil { color:#94a3b8 !important; }
+.piv { color:#0f172a !important; font-weight:600 !important; }
+.piv.gold { color:var(--gold) !important; }
+.piv.grn  { color:var(--green) !important; }
+.p-alert, .palert { border-radius:4px !important; font-weight:500 !important; }
+.p-alert.ok, .palert.ok { color:#15803d !important; border-color:var(--green-30) !important; background:#f0fdf4 !important; }
+.p-alert.warn, .palert.warn { color:var(--red) !important; border-color:var(--red-30) !important; background:#fef2f2 !important; }
+.p-alert.partial, .palert.partial { color:var(--amber) !important; border-color:rgba(217,119,6,.3) !important; background:#fffbeb !important; }
+
+/* Buttons */
+.pgoldbtn {
+  background:#ffffff !important; border:1px solid #e2e8f0 !important; color:var(--gold) !important;
+  border-radius:6px !important; font-weight:600 !important;
+}
+.pgoldbtn:hover { border-color:var(--gold) !important; background:var(--gold-10) !important; }
+.edit-save-btn {
+  background:linear-gradient(135deg,var(--gold),var(--gold-lt)) !important;
+  color:#ffffff !important; border-radius:6px !important; font-weight:700 !important;
+}
+.edit-save-btn:hover { box-shadow:0 4px 14px rgba(37,99,235,.3) !important; }
+.edit-danger-btn { border-radius:6px !important; }
+.edit-inp, .edit-inp:focus {
+  background:#f8fafc !important; border:1px solid #e2e8f0 !important; color:#0f172a !important;
+  border-radius:4px !important;
+}
+.edit-inp:focus { border-color:var(--gold) !important; box-shadow:0 0 0 3px var(--gold-10) !important; }
+.edit-lbl { color:#64748b !important; }
+.edit-section-divider { color:var(--gold) !important; }
+.edit-section-divider::after { background:linear-gradient(90deg,#e2e8f0,transparent) !important; }
+
+/* Map header */
+.map-hdr, .f-maptop {
+  background:linear-gradient(180deg,rgba(255,255,255,.97) 0%,transparent) !important;
+}
+.map-lbl, .f-maplbl { color:var(--gold) !important; font-weight:600 !important; }
+.mbtn, .f-mapbtn {
+  background:rgba(255,255,255,.95) !important; border:1px solid #e2e8f0 !important;
+  color:#64748b !important; border-radius:4px !important; box-shadow:0 1px 4px rgba(0,0,0,.08) !important;
+}
+.mbtn:hover, .f-mapbtn:hover { border-color:var(--gold) !important; color:var(--gold) !important; }
+.mcorner, .f-corner { border-color:var(--gold) !important; opacity:.25 !important; }
+
+/* Map tooltip */
+.mtooltip, .f-tooltip {
+  background:#ffffff !important; border:1px solid #e2e8f0 !important;
+  border-radius:6px !important; box-shadow:0 4px 16px rgba(0,0,0,.12) !important;
+}
+.mtooltip::after, .f-tooltip::after {
+  background:#ffffff !important; border-color:#e2e8f0 !important;
+}
+
+/* Leaflet popup */
+.leaflet-popup-content-wrapper {
+  background:#ffffff !important; border:1px solid #e2e8f0 !important;
+  border-radius:8px !important; box-shadow:0 8px 24px rgba(0,0,0,.12) !important;
+}
+.lpop-name { color:var(--gold) !important; }
+.lpop-row { color:#64748b !important; }
+.lpop-row span { color:#0f172a !important; }
+.lpop-gps { color:var(--green) !important; }
+
+/* Driver marker */
+.driver-label { color:#0f172a !important; text-shadow:0 1px 2px rgba(255,255,255,.9) !important; font-weight:600 !important; }
+
+/* Doc rows */
+.doc-row { background:#f8fafc !important; border:1px solid #f1f5f9 !important; border-radius:4px !important; }
+.doc-row:hover { border-color:#e2e8f0 !important; box-shadow:0 1px 4px rgba(0,0,0,.04) !important; }
+.doc-name { color:#0f172a !important; font-weight:500 !important; }
+.doc-date { color:#94a3b8 !important; }
+.dtag.ok { color:#15803d !important; border-color:var(--green-30) !important; background:#f0fdf4 !important; font-weight:600 !important; }
+.dtag.exp { color:var(--red) !important; border-color:var(--red-30) !important; background:#fef2f2 !important; font-weight:600 !important; }
+.dtag.pend { color:var(--amber) !important; border-color:rgba(217,119,6,.3) !important; background:#fffbeb !important; font-weight:600 !important; }
+.dtag.missing { color:#94a3b8 !important; border-color:#e2e8f0 !important; background:#f8fafc !important; font-weight:600 !important; }
+
+/* Trip cards */
+.p-tripcard, .trip-hist-item {
+  background:#f8fafc !important; border:1px solid #f1f5f9 !important; border-radius:6px !important;
+}
+.p-tripcard:hover, .trip-hist-item:hover { border-color:#e2e8f0 !important; box-shadow:0 2px 8px rgba(0,0,0,.06) !important; }
+.p-triproute, .thi-route { color:#0f172a !important; font-weight:700 !important; }
+.p-triparr { color:var(--gold) !important; }
+.p-tripmeta, .thi-meta { color:#94a3b8 !important; }
+.p-triptag.done { color:#15803d !important; border-color:var(--green-30) !important; background:#f0fdf4 !important; }
+.p-triptag.live { color:var(--gold) !important; border-color:var(--gold-20) !important; background:var(--gold-10) !important; }
+
+/* Trip workflow cards */
+.tw-card { background:#ffffff !important; border:1px solid #e2e8f0 !important; border-radius:8px !important; box-shadow:0 1px 4px rgba(0,0,0,.04) !important; }
+.tw-card.active-trip { border-color:var(--gold) !important; box-shadow:0 2px 10px var(--gold-20) !important; }
+.tw-card-head { background:#f8fafc !important; }
+.tw-card-head:hover { background:#f1f5f9 !important; }
+.tw-route { color:#0f172a !important; }
+.tw-ms-title { color:#0f172a !important; font-weight:600 !important; }
+.tw-ms-sub, .tw-ms-time { color:#64748b !important; }
+.tw-milestone.locked .tw-ms-title { color:#cbd5e1 !important; }
+.tw-milestone.locked .tw-ms-icon { border-color:#e2e8f0 !important; background:#f8fafc !important; color:#cbd5e1 !important; }
+.tw-upload-slot { background:#f8fafc !important; border:1px dashed #cbd5e1 !important; border-radius:4px !important; }
+.tw-upload-slot:hover { border-color:var(--gold) !important; background:var(--gold-10) !important; }
+.tw-upload-slot.uploaded { border-color:var(--green-30) !important; background:#f0fdf4 !important; border-style:solid !important; }
+.tw-slot-lbl { color:#64748b !important; }
+.tw-action-btn.depart { color:var(--amber) !important; border-color:rgba(217,119,6,.4) !important; background:#fffbeb !important; font-weight:600 !important; }
+.tw-action-btn.depart:hover { background:var(--amber) !important; color:#fff !important; }
+.tw-action-btn.arrive { color:var(--green) !important; border-color:var(--green-30) !important; background:#f0fdf4 !important; font-weight:600 !important; }
+.tw-action-btn.arrive:hover { background:var(--green) !important; color:#fff !important; }
+.tw-action-btn.done-btn { color:var(--gold) !important; border-color:var(--gold-20) !important; background:var(--gold-10) !important; font-weight:600 !important; }
+.tw-action-btn.done-btn:hover { background:var(--gold) !important; color:#fff !important; }
+.tw-new-btn { background:#f8fafc !important; border:1px dashed #cbd5e1 !important; color:var(--gold) !important; border-radius:6px !important; font-weight:600 !important; }
+.tw-new-btn:hover { background:var(--gold-10) !important; border-color:var(--gold) !important; }
+
+/* Upload zones */
+.p-uplzone { background:#f8fafc !important; border:1px dashed #cbd5e1 !important; border-radius:6px !important; }
+.p-uplzone:hover, .p-uplzone.drag { border-color:var(--gold) !important; background:var(--gold-10) !important; }
+.p-uplico { color:#94a3b8 !important; }
+.p-uplzone:hover .p-uplico { color:var(--gold) !important; }
+.p-upllbl { color:#64748b !important; }
+.p-uplsub { color:#94a3b8 !important; }
+.p-docrow { background:#f8fafc !important; border:1px solid #f1f5f9 !important; border-radius:4px !important; }
+.p-docrow:hover { border-color:#e2e8f0 !important; }
+.p-docname { color:#0f172a !important; font-weight:500 !important; }
+.p-docdate { color:#94a3b8 !important; }
+.p-doctag.ok { color:#15803d !important; border-color:var(--green-30) !important; background:#f0fdf4 !important; }
+.p-doctag.exp { color:var(--red) !important; border-color:var(--red-30) !important; background:#fef2f2 !important; }
+.p-doctag.pend { color:var(--amber) !important; border-color:rgba(217,119,6,.3) !important; background:#fffbeb !important; }
+.p-doctag.missing { color:#94a3b8 !important; border-color:#e2e8f0 !important; }
+
+/* Chat */
+.chat-messages { background:#f8fafc !important; }
+.chat-bubble.sent { background:var(--gold-10) !important; border-color:var(--gold-20) !important; }
+.chat-bubble.recv { background:#ffffff !important; border-color:#e2e8f0 !important; }
+.chat-bubble.system { color:#94a3b8 !important; }
+.bubble-sender { color:var(--gold) !important; }
+.bubble-text { color:#0f172a !important; }
+.bubble-time { color:#94a3b8 !important; }
+.chat-input-row { background:#ffffff !important; border-top:1px solid #e2e8f0 !important; }
+.chat-input { background:#f8fafc !important; border:1px solid #e2e8f0 !important; color:#0f172a !important; border-radius:6px !important; }
+.chat-input:focus { border-color:var(--gold) !important; box-shadow:0 0 0 3px var(--gold-10) !important; }
+.chat-send-btn { background:linear-gradient(135deg,var(--gold),var(--gold-lt)) !important; color:#fff !important; border-radius:6px !important; }
+.chat-empty-lbl { color:#94a3b8 !important; }
+.drv-chat-header { background:#f8fafc !important; border-bottom:1px solid #e2e8f0 !important; }
+.drv-chat-av { background:linear-gradient(135deg,var(--gold),var(--gold-lt)) !important; color:#fff !important; }
+.drv-chat-title { color:#0f172a !important; font-weight:600 !important; }
+.drv-chat-sub { color:#94a3b8 !important; }
+.chat-unread { background:var(--red) !important; }
+
+/* Driver view */
+#view-driver { background:#f5f7fa !important; }
+.drv-main {}
+.drv-header { background:#ffffff !important; border:1px solid #e2e8f0 !important; border-radius:8px !important; box-shadow:0 2px 8px rgba(0,0,0,.06) !important; }
+.drv-header::before { background:linear-gradient(90deg,transparent,var(--gold),transparent) !important; opacity:.5 !important; }
+.drv-hname { color:#0f172a !important; font-weight:700 !important; }
+.drv-hmeta { color:#64748b !important; }
+.drv-av-lg { background:var(--gold-10) !important; border:1px solid var(--gold-20) !important; color:var(--gold) !important; border-radius:6px !important; }
+.drv-section { background:#ffffff !important; border:1px solid #e2e8f0 !important; border-radius:8px !important; box-shadow:0 1px 4px rgba(0,0,0,.04) !important; }
+.drv-sec-title { color:var(--gold) !important; }
+.drv-sec-title::after { background:linear-gradient(90deg,#e2e8f0,transparent) !important; }
+.drv-info-cell { background:#f8fafc !important; border:1px solid #f1f5f9 !important; border-radius:4px !important; }
+.drv-ic-lbl { color:#94a3b8 !important; }
+.drv-ic-val { color:#0f172a !important; font-weight:600 !important; }
+.drv-ic-val.gold { color:var(--gold) !important; }
+.drv-ic-val.grn { color:var(--green) !important; }
+.drv-loc-sharing.on { color:var(--green) !important; border-color:var(--green-30) !important; background:#f0fdf4 !important; border-radius:6px !important; font-weight:600 !important; }
+.drv-loc-sharing.off { color:#94a3b8 !important; border-color:#e2e8f0 !important; border-radius:6px !important; }
+.req-doc { background:#ffffff !important; border:1px solid #f1f5f9 !important; border-radius:6px !important; }
+.req-doc:hover { border-color:#e2e8f0 !important; box-shadow:0 1px 6px rgba(0,0,0,.05) !important; }
+.req-doc.has .req-doc-ico { color:var(--green) !important; border-color:var(--green-30) !important; background:#f0fdf4 !important; }
+.req-doc.expired .req-doc-ico { color:var(--red) !important; border-color:var(--red-30) !important; background:#fef2f2 !important; }
+.req-doc.missing .req-doc-ico { color:#94a3b8 !important; border-color:#e2e8f0 !important; }
+.req-doc-name { color:#0f172a !important; font-weight:600 !important; }
+.req-doc.has .req-doc-status { color:var(--green) !important; }
+.req-doc.expired .req-doc-status { color:var(--red) !important; }
+.req-doc.missing .req-doc-status { color:#94a3b8 !important; }
+.upload-btn { background:#f8fafc !important; border:1px solid #e2e8f0 !important; color:var(--gold) !important; border-radius:6px !important; font-weight:600 !important; }
+.upload-btn:hover { border-color:var(--gold) !important; background:var(--gold-10) !important; }
+.trip-field label { color:#64748b !important; font-size:10px !important; }
+.trip-field input, .trip-field select { background:#f8fafc !important; border:1px solid #e2e8f0 !important; color:#0f172a !important; border-radius:4px !important; }
+.trip-field input:focus, .trip-field select:focus { border-color:var(--gold) !important; }
+.trip-submit { background:linear-gradient(135deg,var(--gold),var(--gold-lt)) !important; color:#fff !important; border-radius:6px !important; font-weight:700 !important; }
+
+/* Login screen */
+#screen-login { background:#f0f4f8 !important; }
+.lg-grid { background-image:linear-gradient(rgba(37,99,235,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,.04) 1px,transparent 1px) !important; }
+.lg-glow { background:radial-gradient(ellipse,rgba(37,99,235,.08) 0%,transparent 65%) !important; }
+.lg-box { background:#ffffff !important; border:1px solid #e2e8f0 !important; box-shadow:0 8px 40px rgba(0,0,0,.12) !important; border-radius:12px !important; }
+.lg-box::before { background:linear-gradient(90deg,transparent,var(--gold),var(--gold-lt),var(--gold),transparent) !important; border-radius:12px 12px 0 0 !important; }
+.lg-brand { color:#0f172a !important; letter-spacing:1px !important; }
+.lg-sub { color:var(--gold) !important; }
+.lg-emblem::before { border-color:var(--gold-30) !important; }
+.lg-emblem-core { background:linear-gradient(135deg,var(--gold),var(--gold-lt)) !important; }
+.lg-tabs { border:1px solid #e2e8f0 !important; border-radius:6px !important; overflow:hidden !important; }
+.lg-tab { color:#94a3b8 !important; font-weight:500 !important; }
+.lg-tab.on { background:var(--gold-10) !important; color:var(--gold) !important; font-weight:700 !important; }
+.lg-lbl { color:#64748b !important; }
+.lg-inp { background:#f8fafc !important; border:1px solid #e2e8f0 !important; color:#0f172a !important; border-radius:6px !important; }
+.lg-inp:focus { border-color:var(--gold) !important; box-shadow:0 0 0 3px var(--gold-10) !important; background:#fff !important; }
+.lg-inp::placeholder { color:#cbd5e1 !important; }
+.lg-ico { color:#cbd5e1 !important; }
+.lg-btn { border-radius:8px !important; font-weight:700 !important; }
+.lg-btn:hover { box-shadow:0 6px 20px rgba(37,99,235,.3) !important; }
+.lg-err { border-radius:6px !important; }
+.lg-demo { color:#94a3b8 !important; border:1px dashed #e2e8f0 !important; border-radius:6px !important; background:#f8fafc !important; }
+.lg-demo b { color:var(--gold) !important; }
+.lg-corner { opacity:.08 !important; }
+
+/* GPS info panel */
+#gps-info-panel .drv-info-cell { background:#f8fafc !important; border:1px solid #f1f5f9 !important; }
+
+/* Toast */
+.toast, .f-toast { background:#0f172a !important; border:none !important; border-radius:8px !important; color:#f8fafc !important; box-shadow:0 8px 24px rgba(0,0,0,.2) !important; }
+.f-toast { background:#0f172a !important; color:#f8fafc !important; }
+
+/* FB banner */
+#fb-sync-chip span { border-radius:4px !important; font-weight:600 !important; }
+
+/* Map footer text */
+.f-mapfooter { color:#94a3b8 !important; }
+
+/* Leaflet tile layer — add slight overlay to keep map clean */
+.leaflet-tile-pane { filter: saturate(0.9) brightness(1.02); }
+
 
 /* ════ LOGIN ════ */
 #screen-login{
@@ -771,6 +1113,8 @@ input[type=file]{display:none;}
     <div class="tn-status"><div class="tn-dot"></div><span>SYSTEM LIVE</span></div>
     <div class="tn-right">
       <div class="tn-clock" id="tn-clock"></div>
+      <button onclick="exportDriverPDF()" style="padding:6px 14px;background:var(--gold-10);border:1px solid var(--gold-20);color:var(--gold);font-family:var(--mono);font-size:8px;letter-spacing:1px;cursor:pointer;transition:all .2s;" id="pdf-btn" style="display:none">&#8595; PDF</button>
+      <button onclick="openAdminPanel()" style="padding:6px 14px;background:var(--gold-10);border:1px solid var(--gold-20);color:var(--gold);font-family:var(--mono);font-size:8px;letter-spacing:2px;cursor:pointer;transition:all .2s;display:none;" id="admin-btn">&#9776; Admin</button>
       <div class="tn-role-badge" id="tn-role"></div>
       <div class="tn-user" id="tn-user" onclick="doLogout()">
         <div class="tn-av" id="tn-av">?</div>
@@ -888,6 +1232,17 @@ const drivers = DRIVER_NAMES.map((name,i)=>{
     vehicle: `${['TRK','VAN','FLT'][i%3]}-${1000+i*31}`,
     plate: `${['NY','CA','TX','FL','IL'][i%5]}${String(1000+i*77).substring(0,3)}`,
     phone: `+1 (${200+i*3}) ${400+i*7}-${1000+i*33}`.replace(/\d{5}$/,m=>m.substring(0,4)),
+    // Extended fields
+    cdl: `CDL-${String(100000+i*7331).substring(0,6)}`,
+    cdlExpiry: `${2025+Math.floor(i/10)}-${String(1+i%12).padStart(2,'0')}-15`,
+    cdlClass: ['A','A','B'][i%3],
+    emergencyName: ['Sarah '+name.split(' ')[1], 'Mike '+name.split(' ')[1], 'Jennifer '+name.split(' ')[1]][i%3],
+    emergencyPhone: `+1 (${300+i*2}) ${500+i*3}-${2000+i*17}`.replace(/\d{5}$/,m=>m.substring(0,4)),
+    emergencyRelation: ['Spouse','Parent','Sibling'][i%3],
+    hireDate: `${2019+Math.floor(i/6)}-${String(1+i%12).padStart(2,'0')}-01`,
+    dotNumber: `DOT-${String(200000+i*4411).substring(0,6)}`,
+    homeState: ['NY','CA','TX','FL','IL','OH','GA','WA','CO','TN'][i%10],
+    notes: '',
     status,
     loc: { x: city.x + (Math.random()-0.5)*10, y: city.y + (Math.random()-0.5)*10 },
     city: city.name,
@@ -898,7 +1253,7 @@ const drivers = DRIVER_NAMES.map((name,i)=>{
     locationSharing: status!=='offline',
     docs: DOC_TYPES.map(t=>({ name:t, date:randDate(), status:randDocStatus(), file:null })),
     trips: [
-      { from: US_CITIES[Math.floor(Math.random()*US_CITIES.length)].name, to: US_CITIES[Math.floor(Math.random()*US_CITIES.length)].name, date:`2025-05-${String(10+Math.floor(Math.random()*12)).padStart(2,'0')}`, cargo:['Auto Parts','Electronics','Food Goods','Machinery','Textiles'][Math.floor(Math.random()*5)], miles:`${Math.floor(80+Math.random()*600)} mi`, status:'completed' }
+      { id:'t_legacy_'+i, from: US_CITIES[Math.floor(Math.random()*US_CITIES.length)].name, to: US_CITIES[Math.floor(Math.random()*US_CITIES.length)].name, date:`2025-05-${String(10+Math.floor(Math.random()*12)).padStart(2,'0')}`, cargo:['Auto Parts','Electronics','Food Goods','Machinery','Textiles'][Math.floor(Math.random()*5)], miles:`${Math.floor(80+Math.random()*600)} mi`, phase:'complete', pickup:{}, delivery:{} }
     ]
   };
 });
@@ -1134,6 +1489,12 @@ function launchApp(user){
     showView('manager'); buildManagerUI();
     // Start Firebase real-time listener for all drivers
     setTimeout(() => { fbStartManagerListener(); showFbBanner(); fbListenAllMessages(); }, 800);
+    // Show admin buttons
+    const adminBtn = document.getElementById('admin-btn');
+    const pdfBtn   = document.getElementById('pdf-btn');
+    if(adminBtn) adminBtn.style.display='block';
+    if(pdfBtn)   pdfBtn.style.display='block';
+    initNotifications();
   } else {
     av.className='tn-av drv'; rb.className='tn-role-badge driver'; rb.textContent='Driver';
     showView('driver'); buildDriverUI(user);
@@ -1354,44 +1715,55 @@ function renderPanel(){
 function drawEdit(el) {
   const d = selectedDriver;
   el.innerHTML = `
-    <div style="font-family:var(--mono);font-size:8px;color:var(--t2);margin-bottom:16px;letter-spacing:2px;text-transform:uppercase;">
+    <div style="font-family:var(--mono);font-size:8px;color:var(--t2);margin-bottom:14px;letter-spacing:2px;text-transform:uppercase;">
       Editing: <span style="color:var(--gold)">${d.name}</span> · Driver #${d.id}
     </div>
 
     <div class="edit-section-divider">Personal Info</div>
+    <div class="edit-field"><label class="edit-lbl">Full Name</label><input class="edit-inp" id="e-name" value="${d.name}" placeholder="First Last"></div>
+    <div class="edit-field"><label class="edit-lbl">Phone</label><input class="edit-inp" id="e-phone" value="${d.phone||''}" placeholder="+1 (555) 000-0000"></div>
+    <div class="edit-field"><label class="edit-lbl">Home State</label><input class="edit-inp" id="e-state" value="${d.homeState||''}" placeholder="TX"></div>
+    <div class="edit-field"><label class="edit-lbl">Hire Date</label><input class="edit-inp" id="e-hire" type="date" value="${d.hireDate||''}"></div>
+    <div class="edit-field"><label class="edit-lbl">Notes</label><input class="edit-inp" id="e-notes" value="${d.notes||''}" placeholder="Optional notes…"></div>
 
-    <div class="edit-field">
-      <label class="edit-lbl" for="e-name">Full Name</label>
-      <input class="edit-inp" id="e-name" value="${d.name}" placeholder="First Last">
-    </div>
-    <div class="edit-field">
-      <label class="edit-lbl" for="e-phone">Phone Number</label>
-      <input class="edit-inp" id="e-phone" value="${d.phone}" placeholder="+1 (555) 000-0000">
-    </div>
-    <div class="edit-field">
-      <label class="edit-lbl" for="e-email">Login Email</label>
-      <input class="edit-inp" id="e-email" type="email" value="${d.email}" placeholder="driver@company.com">
-    </div>
-    <div class="edit-field">
-      <label class="edit-lbl" for="e-pw">New Password <span style="color:var(--t3)">(leave blank to keep current)</span></label>
-      <input class="edit-inp" id="e-pw" type="password" placeholder="••••••••">
-    </div>
+    <div class="edit-section-divider">Login</div>
+    <div class="edit-field"><label class="edit-lbl">Email</label><input class="edit-inp" id="e-email" type="email" value="${d.email}" placeholder="driver@company.com"></div>
+    <div class="edit-field"><label class="edit-lbl">New Password <span style="color:var(--t3)">(leave blank to keep)</span></label><input class="edit-inp" id="e-pw" type="password" placeholder="••••••••"></div>
 
-    <div class="edit-section-divider">Vehicle Info</div>
+    <div class="edit-section-divider">CDL / License</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="edit-field"><label class="edit-lbl">CDL Number</label><input class="edit-inp" id="e-cdl" value="${d.cdl||''}" placeholder="CDL-123456"></div>
+      <div class="edit-field"><label class="edit-lbl">CDL Class</label>
+        <select class="edit-inp" id="e-cdlclass">
+          <option value="A" ${(d.cdlClass||'A')==='A'?'selected':''}>Class A</option>
+          <option value="B" ${d.cdlClass==='B'?'selected':''}>Class B</option>
+          <option value="C" ${d.cdlClass==='C'?'selected':''}>Class C</option>
+        </select>
+      </div>
+    </div>
+    <div class="edit-field"><label class="edit-lbl">CDL Expiry</label><input class="edit-inp" id="e-cdlexp" type="date" value="${d.cdlExpiry||''}"></div>
+    <div class="edit-field"><label class="edit-lbl">DOT Number</label><input class="edit-inp" id="e-dot" value="${d.dotNumber||''}" placeholder="DOT-123456"></div>
 
-    <div class="edit-field">
-      <label class="edit-lbl" for="e-vehicle">Vehicle ID</label>
-      <input class="edit-inp" id="e-vehicle" value="${d.vehicle}" placeholder="TRK-1234">
+    <div class="edit-section-divider">Vehicle</div>
+    <div class="edit-field"><label class="edit-lbl">Vehicle ID</label><input class="edit-inp" id="e-vehicle" value="${d.vehicle}" placeholder="TRK-1234"></div>
+    <div class="edit-field"><label class="edit-lbl">License Plate</label><input class="edit-inp" id="e-plate" value="${d.plate}" placeholder="ABC-1234"></div>
+
+    <div class="edit-section-divider">Emergency Contact</div>
+    <div class="edit-field"><label class="edit-lbl">Contact Name</label><input class="edit-inp" id="e-ecname" value="${d.emergencyName||''}" placeholder="Jane Smith"></div>
+    <div class="edit-field"><label class="edit-lbl">Relationship</label>
+      <select class="edit-inp" id="e-ecrel">
+        <option value="Spouse" ${d.emergencyRelation==='Spouse'?'selected':''}>Spouse</option>
+        <option value="Parent" ${d.emergencyRelation==='Parent'?'selected':''}>Parent</option>
+        <option value="Sibling" ${d.emergencyRelation==='Sibling'?'selected':''}>Sibling</option>
+        <option value="Friend" ${d.emergencyRelation==='Friend'?'selected':''}>Friend</option>
+        <option value="Other" ${d.emergencyRelation==='Other'?'selected':''}>Other</option>
+      </select>
     </div>
-    <div class="edit-field">
-      <label class="edit-lbl" for="e-plate">License Plate</label>
-      <input class="edit-inp" id="e-plate" value="${d.plate}" placeholder="ABC-1234">
-    </div>
+    <div class="edit-field"><label class="edit-lbl">Contact Phone</label><input class="edit-inp" id="e-ecphone" value="${d.emergencyPhone||''}" placeholder="+1 (555) 000-0000"></div>
 
     <div class="edit-section-divider">Status</div>
-
     <div class="edit-field">
-      <label class="edit-lbl" for="e-status">Status</label>
+      <label class="edit-lbl">Status</label>
       <select class="edit-inp" id="e-status">
         <option value="active" ${d.status==='active'?'selected':''}>Active — On Route</option>
         <option value="idle" ${d.status==='idle'?'selected':''}>Idle — Parked</option>
@@ -1401,8 +1773,7 @@ function drawEdit(el) {
 
     <button class="edit-save-btn" onclick="saveDriverEdit(${d.id})">→ Save Changes</button>
     <button class="edit-danger-btn" onclick="confirmRemoveDriver(${d.id})">⚠ Remove Driver</button>
-
-    <div style="margin-top:16px;padding:10px;background:var(--black-3);border:1px solid var(--gold-10);font-family:var(--mono);font-size:8px;color:var(--t3);line-height:1.8;letter-spacing:.5px;">
+    <div style="margin-top:12px;padding:10px;background:var(--black-3);border:1px solid var(--gold-10);font-family:var(--mono);font-size:8px;color:var(--t3);line-height:1.8;letter-spacing:.5px;">
       Changes apply immediately. Driver must re-login if email or password is changed.
     </div>
   `;
@@ -1411,41 +1782,29 @@ function drawEdit(el) {
 function saveDriverEdit(id) {
   const d = drivers.find(x => x.id === id);
   if (!d) return;
-
-  const name    = document.getElementById('e-name').value.trim();
-  const phone   = document.getElementById('e-phone').value.trim();
-  const email   = document.getElementById('e-email').value.trim().toLowerCase();
-  const pw      = document.getElementById('e-pw').value;
-  const vehicle = document.getElementById('e-vehicle').value.trim();
-  const plate   = document.getElementById('e-plate').value.trim().toUpperCase();
-  const status  = document.getElementById('e-status').value;
-
+  const g = id => document.getElementById(id)?.value.trim();
+  const name = g('e-name'); const email = g('e-email');
   if (!name) { showToast('Name cannot be empty'); return; }
   if (!email) { showToast('Email cannot be empty'); return; }
-
-  // Apply changes
-  d.name    = name;
-  d.init    = mkInitials(name);
-  d.phone   = phone || d.phone;
-  d.email   = email;
-  if (pw) d.password = pw;
-  d.vehicle = vehicle || d.vehicle;
-  d.plate   = plate   || d.plate;
-  d.status  = status;
-
-  // Refresh UI everywhere
-  renderDList();
-  renderPins();
-  renderPanel(); // re-render edit tab with new values
-  showToast(`${name} updated successfully`);
-
-  // If Firebase is live, push update
-  if (fbMode && window._fb?.ready) {
-    const { db, ref, update } = window._fb;
-    update(ref(db, `fleet/drivers/${id}/profile`), {
-      name: d.name, phone: d.phone, email: d.email,
-      vehicle: d.vehicle, plate: d.plate, status: d.status
-    }).catch(err => console.warn('FB profile update error:', err));
+  const pw = document.getElementById('e-pw')?.value;
+  d.name=name; d.init=mkInitials(name);
+  d.phone=g('e-phone')||d.phone; d.email=email;
+  if(pw) d.password=pw;
+  d.vehicle=g('e-vehicle')||d.vehicle; d.plate=(g('e-plate')||d.plate).toUpperCase();
+  d.status=g('e-status'); d.homeState=g('e-state');
+  d.hireDate=g('e-hire'); d.notes=g('e-notes');
+  d.cdl=g('e-cdl'); d.cdlClass=g('e-cdlclass'); d.cdlExpiry=g('e-cdlexp');
+  d.dotNumber=g('e-dot');
+  d.emergencyName=g('e-ecname'); d.emergencyRelation=g('e-ecrel'); d.emergencyPhone=g('e-ecphone');
+  renderDList(); renderPins(); renderPanel();
+  showToast(name+' updated successfully');
+  if(fbMode && window._fb?.ready){
+    window._fb.update(window._fb.ref(window._fb.db,'fleet/drivers/'+id+'/profile'),{
+      name:d.name,phone:d.phone,email:d.email,vehicle:d.vehicle,plate:d.plate,status:d.status,
+      homeState:d.homeState,hireDate:d.hireDate,notes:d.notes,cdl:d.cdl,cdlClass:d.cdlClass,
+      cdlExpiry:d.cdlExpiry,dotNumber:d.dotNumber,
+      emergencyName:d.emergencyName,emergencyRelation:d.emergencyRelation,emergencyPhone:d.emergencyPhone
+    }).catch(e=>console.warn('FB profile update error:',e));
   }
 }
 
@@ -1476,30 +1835,51 @@ function drawProfile(el){
   const d=selectedDriver;
   const allDocs = getDriverDocs(d);
   const expCount = allDocs.filter(x=>x.status==='exp'||x.status==='missing').length;
+  const cdlDaysLeft = d.cdlExpiry ? Math.floor((new Date(d.cdlExpiry)-new Date())/(1000*60*60*24)) : null;
+  const cdlWarn = cdlDaysLeft !== null && cdlDaysLeft < 60;
   el.innerHTML=`
     <div class="ph">
       <div class="pav">${d.init}</div>
       <div>
         <div class="pname">${d.name}</div>
-        <div class="prole" style="color:${scol(d.status)}">${d.status.toUpperCase()} · ${d.vehicle}</div>
+        <div class="prole" style="color:${scol(d.status)}">${d.status.toUpperCase()} &middot; ${d.vehicle}</div>
+        ${d.hireDate?'<div style="font-family:var(--mono);font-size:8px;color:var(--t2);margin-top:2px;">Hired '+d.hireDate+'</div>':''}
       </div>
     </div>
-    <div class="pigrid">
+    <div style="font-family:var(--mono);font-size:7px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">Live Status</div>
+    <div class="pigrid" style="margin-bottom:14px;">
       <div class="picell"><div class="pil">Plate</div><div class="piv gold">${d.plate}</div></div>
       <div class="picell"><div class="pil">Speed</div><div class="piv ${d.status==='active'?'grn':''}">${d.speed}</div></div>
       <div class="picell"><div class="pil">Location</div><div class="piv" style="font-size:10px">${d.city.split(',')[0]}</div></div>
-      <div class="picell"><div class="pil">Destination</div><div class="piv" style="font-size:10px">${d.dest?d.dest.split(',')[0]:'—'}</div></div>
-      <div class="picell"><div class="pil">ETA</div><div class="piv ${d.eta!=='—'?'gold':''}">${d.eta}</div></div>
+      <div class="picell"><div class="pil">Destination</div><div class="piv" style="font-size:10px">${d.dest?d.dest.split(',')[0]:'&mdash;'}</div></div>
+      <div class="picell"><div class="pil">ETA</div><div class="piv ${d.eta!=='&mdash;'?'gold':''}">${d.eta}</div></div>
       <div class="picell"><div class="pil">Distance</div><div class="piv">${d.dist}</div></div>
-      <div class="picell"><div class="pil">Phone</div><div class="piv mono" style="font-size:9px">${d.phone}</div></div>
-      <div class="picell"><div class="pil">GPS Sharing</div><div class="piv ${d.locationSharing?'grn':''}">${d.locationSharing?'Active':'Off'}</div></div>
     </div>
+    <div style="font-family:var(--mono);font-size:7px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">Contact</div>
+    <div class="pigrid" style="margin-bottom:14px;">
+      <div class="picell" style="grid-column:1/-1"><div class="pil">Phone</div><div class="piv mono" style="font-size:10px">${d.phone}</div></div>
+      ${d.emergencyName?`
+      <div class="picell"><div class="pil">Emergency</div><div class="piv" style="font-size:10px">${d.emergencyName}</div></div>
+      <div class="picell"><div class="pil">Relation</div><div class="piv" style="font-size:10px">${d.emergencyRelation||'&mdash;'}</div></div>
+      <div class="picell" style="grid-column:1/-1"><div class="pil">Emergency Phone</div><div class="piv mono" style="font-size:10px">${d.emergencyPhone||'&mdash;'}</div></div>`:''}
+    </div>
+    <div style="font-family:var(--mono);font-size:7px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">CDL &amp; Compliance</div>
+    <div class="pigrid" style="margin-bottom:14px;">
+      <div class="picell"><div class="pil">CDL Number</div><div class="piv mono" style="font-size:10px">${d.cdl||'&mdash;'}</div></div>
+      <div class="picell"><div class="pil">Class</div><div class="piv gold">Class ${d.cdlClass||'A'}</div></div>
+      <div class="picell"><div class="pil">CDL Expires</div><div class="piv" style="font-size:10px;${cdlWarn?'color:var(--red)':''}">${d.cdlExpiry||'&mdash;'}${cdlWarn?' &warning;':''}</div></div>
+      <div class="picell"><div class="pil">DOT #</div><div class="piv mono" style="font-size:10px">${d.dotNumber||'&mdash;'}</div></div>
+    </div>
+    ${cdlWarn?'<div class="palert warn" style="margin-bottom:10px;">&#9888; CDL EXPIRES IN '+cdlDaysLeft+' DAYS</div>':''}
     <div class="${expCount>0?'palert warn':allDocs.some(x=>x.status==='pend')?'palert partial':'palert ok'}">
-      ${expCount>0?`⚠ ${expCount} DOCUMENT(S) REQUIRE ATTENTION`:allDocs.some(x=>x.status==='pend')?'⏳ DOCUMENTS PENDING REVIEW':'✓ ALL DOCUMENTS VERIFIED'}
+      ${expCount>0?'&#9888; '+expCount+' DOCUMENT(S) REQUIRE ATTENTION':allDocs.some(x=>x.status==='pend')?'&#9203; DOCUMENTS PENDING REVIEW':'&#10003; ALL DOCUMENTS VERIFIED'}
     </div>
-    <button class="pgoldbtn" onclick="rtab('docs')">→ View Documents</button>`;
+    ${d.notes?'<div style="margin-top:8px;padding:10px;background:var(--black-3);border:1px solid var(--gold-10);font-family:var(--sans);font-size:11px;color:var(--t2);line-height:1.6;">'+d.notes+'</div>':''}
+    <div style="display:flex;gap:6px;margin-top:10px;">
+      <button class="pgoldbtn" onclick="rtab('docs')" style="flex:1;">&#8594; Documents</button>
+      <button class="pgoldbtn" onclick="rtab('chat')" style="flex:1;">&#128172; Message</button>
+    </div>`;
 }
-
 function getDriverDocs(d){
   const up = driverUploads[d.id] || {};
   return d.docs.map(doc=>({ ...doc, ...(up[doc.name]||{}) }));
@@ -2120,6 +2500,7 @@ function triggerDocUpload(dId, idx, docName){
         if(fn) fn.textContent='✓ '+f.name;
       }
       showToast(`${f.name} uploaded — pending review`);
+      pushNotif('Document uploaded', (drivers.find(x=>x.id===dId)?.name||'Driver')+' uploaded '+docName);
 
       // Push to Firebase with base64 data so manager can view/download
       if(fbMode && window._fb?.ready){
@@ -2522,6 +2903,9 @@ function fbListenMessages(dId){
         if(!unreadCounts[dId]) unreadCounts[dId]=0;
         unreadCounts[dId]++;
         updateChatBadge();
+        // Push notification
+        const drv = drivers.find(x=>x.id===dId);
+        pushNotif('New message from '+(drv?.name||'Driver'), msg.text);
       }
     });
     // Re-render if currently viewing this conversation
@@ -2635,6 +3019,286 @@ function fbListenAllMessages(){
   if(!fbMode || !window._fb?.ready) return;
   drivers.forEach(d => fbListenMessages(d.id));
 }
+// ════ PUSH NOTIFICATIONS ════
+let notifPermission = 'default';
+
+function requestNotifPermission(){
+  if(!('Notification' in window)) return;
+  Notification.requestPermission().then(p=>{ notifPermission=p; });
+}
+
+function pushNotif(title, body, icon){
+  if(notifPermission !== 'granted') return;
+  if(document.visibilityState === 'visible') return; // don't notify if tab is active
+  try {
+    new Notification(title, {
+      body, icon: icon || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23c9a84c"/><text y="24" font-size="20" x="6">BG</text></svg>',
+      badge: icon, tag: title
+    });
+  } catch(e) {}
+}
+
+// Request permission when manager logs in
+function initNotifications(){
+  if(!('Notification' in window)) return;
+  notifPermission = Notification.permission;
+  if(notifPermission === 'default'){
+    // Show a subtle prompt
+    setTimeout(()=>{
+      const bar = document.createElement('div');
+      bar.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);background:var(--black-2);border:1px solid var(--gold-20);padding:10px 18px;display:flex;align-items:center;gap:12px;z-index:5000;font-family:var(--mono);font-size:9px;color:var(--t2);letter-spacing:1px;';
+      bar.innerHTML = '&#128276; Enable notifications for driver alerts &nbsp;<button onclick="requestNotifPermission();this.parentNode.remove()" style="padding:5px 12px;background:var(--gold-10);border:1px solid var(--gold-30);color:var(--gold);font-family:var(--mono);font-size:8px;letter-spacing:1px;cursor:pointer;">Enable</button><button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;margin-left:4px;">&#10005;</button>';
+      document.body.appendChild(bar);
+      setTimeout(()=>bar.remove(), 8000);
+    }, 2000);
+  } else if(notifPermission === 'granted'){
+    notifPermission = 'granted';
+  }
+}
+
+// ════ ADMIN PANEL ════
+function openAdminPanel(){
+  const existing = document.getElementById('admin-panel-modal');
+  if(existing){ existing.remove(); return; }
+
+  const modal = document.createElement('div');
+  modal.id = 'admin-panel-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:4000;background:rgba(6,6,6,.96);display:flex;flex-direction:column;overflow:hidden;';
+
+  const active  = drivers.filter(d=>d.status==='active').length;
+  const idle    = drivers.filter(d=>d.status==='idle').length;
+  const offline = drivers.filter(d=>d.status==='offline').length;
+  const docsExp = drivers.reduce((n,d)=>n+getDriverDocs(d).filter(x=>x.status==='exp').length,0);
+  const docsMis = drivers.reduce((n,d)=>n+getDriverDocs(d).filter(x=>x.status==='missing').length,0);
+  const activeTrips = drivers.reduce((n,d)=>n+d.trips.filter(t=>t.phase&&t.phase!=='complete').length,0);
+
+  modal.innerHTML = `
+    <div style="background:var(--black-2);border-bottom:1px solid var(--gold-20);padding:16px 24px;display:flex;align-items:center;gap:16px;flex-shrink:0;position:relative;">
+      <div style="position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.4;"></div>
+      <div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--t1);letter-spacing:1px;">Admin Panel</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--t2);letter-spacing:2px;">Baltic Global Fleet Command</div>
+      <button onclick="document.getElementById('admin-panel-modal').remove()" style="margin-left:auto;padding:8px 18px;background:var(--black-3);border:1px solid var(--gold-20);color:var(--t2);font-family:var(--mono);font-size:9px;letter-spacing:2px;cursor:pointer;">&#10005; Close</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:24px;max-width:1100px;margin:0 auto;width:100%;">
+
+      <!-- Fleet Summary -->
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:28px;">
+        ${[
+          ['Total Drivers',drivers.length,'var(--gold)'],
+          ['Active',active,'var(--green)'],
+          ['Idle',idle,'var(--amber)'],
+          ['Offline',offline,'var(--t2)'],
+          ['Active Trips',activeTrips,'var(--gold)'],
+          ['Doc Issues',docsExp+docsMis,'var(--red)']
+        ].map(([l,n,c])=>`
+        <div style="background:var(--black-2);border:1px solid var(--gold-10);padding:16px;text-align:center;">
+          <div style="font-family:var(--serif);font-size:32px;font-weight:700;color:${c};line-height:1;">${n}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--t2);letter-spacing:1px;margin-top:3px;">${l}</div>
+        </div>`).join('')}
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;">
+        <button onclick="exportAllDriversPDF()" style="padding:10px 20px;background:var(--gold-10);border:1px solid var(--gold-20);color:var(--gold);font-family:var(--mono);font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--gold-20)'" onmouseout="this.style.background='var(--gold-10)'">&#8595; Export All Drivers PDF</button>
+        <button onclick="exportAllTripsPDF()" style="padding:10px 20px;background:var(--gold-10);border:1px solid var(--gold-20);color:var(--gold);font-family:var(--mono);font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='var(--gold-20)'" onmouseout="this.style.background='var(--gold-10)'">&#8595; Export All Trips PDF</button>
+        <button onclick="showDocAlertsAdmin()" style="padding:10px 20px;background:var(--red-10);border:1px solid rgba(201,76,76,.3);color:var(--red);font-family:var(--mono);font-size:9px;letter-spacing:2px;cursor:pointer;">&#9888; Doc Alerts (${docsExp+docsMis})</button>
+      </div>
+
+      <!-- All drivers table -->
+      <div style="font-family:var(--mono);font-size:8px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;">All Drivers <span style="flex:1;height:1px;background:linear-gradient(90deg,var(--gold-20),transparent);"></span></div>
+      <div style="background:var(--black-2);border:1px solid var(--gold-10);overflow:hidden;">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;background:var(--black-3);border-bottom:1px solid var(--gold-10);padding:8px 12px;font-family:var(--mono);font-size:7px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;gap:8px;">
+          <div>Driver</div><div>Vehicle</div><div>Status</div><div>CDL Exp</div><div>Docs</div><div>Trips</div><div>Actions</div>
+        </div>
+        ${drivers.map(d=>{
+          const docs = getDriverDocs(d);
+          const docBad = docs.filter(x=>x.status==='exp'||x.status==='missing').length;
+          const activeT = d.trips.filter(t=>t.phase&&t.phase!=='complete').length;
+          const cdlExp = d.cdlExpiry ? Math.floor((new Date(d.cdlExpiry)-new Date())/(1000*60*60*24)) : null;
+          const cdlColor = cdlExp!==null&&cdlExp<60?'var(--red)':cdlExp!==null&&cdlExp<180?'var(--amber)':'var(--green)';
+          return `
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;padding:10px 12px;border-bottom:1px solid var(--gold-10);gap:8px;align-items:center;transition:background .15s;" onmouseover="this.style.background='var(--black-3)'" onmouseout="this.style.background=''">
+            <div>
+              <div style="font-family:var(--sans);font-size:12px;font-weight:600;color:var(--t1);">${d.name}</div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--t2);">${d.email}</div>
+            </div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--t1);">${d.vehicle}<br><span style="color:var(--t2)">${d.plate}</span></div>
+            <div><span style="font-family:var(--mono);font-size:8px;padding:2px 6px;border:1px solid;${d.status==='active'?'color:var(--green);border-color:rgba(76,175,125,.3);background:var(--green-10)':d.status==='idle'?'color:var(--amber);border-color:rgba(201,135,58,.3);background:var(--amber-10)':'color:var(--t2);border-color:var(--black-5)'}">${d.status.toUpperCase()}</span></div>
+            <div style="font-family:var(--mono);font-size:9px;color:${cdlColor};">${d.cdlExpiry||'—'}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:${docBad>0?'var(--red)':'var(--green)'};">${docBad>0?docBad+' Issues':'✓ OK'}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:${activeT>0?'var(--gold)':'var(--t2)'};">${activeT>0?activeT+' Active':'None'}</div>
+            <div style="display:flex;gap:4px;">
+              <button onclick="document.getElementById('admin-panel-modal').remove();pickDriver(${d.id});rtab('profile')" style="padding:4px 10px;background:var(--gold-10);border:1px solid var(--gold-20);color:var(--gold);font-family:var(--mono);font-size:7px;cursor:pointer;letter-spacing:1px;">View</button>
+              <button onclick="exportDriverPDF(${d.id})" style="padding:4px 10px;background:transparent;border:1px solid var(--gold-10);color:var(--t2);font-family:var(--mono);font-size:7px;cursor:pointer;letter-spacing:1px;">PDF</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+}
+
+function showDocAlertsAdmin(){
+  const issues = [];
+  drivers.forEach(d=>{
+    getDriverDocs(d).forEach(doc=>{
+      if(doc.status==='exp'||doc.status==='missing') issues.push({driver:d.name,doc:doc.name,status:doc.status});
+    });
+    const cdlExp = d.cdlExpiry ? Math.floor((new Date(d.cdlExpiry)-new Date())/(1000*60*60*24)) : null;
+    if(cdlExp!==null && cdlExp<60) issues.push({driver:d.name,doc:'CDL License',status:'expiring '+cdlExp+'d'});
+  });
+  if(!issues.length){ showToast('No document issues found'); return; }
+  alert('Document Alerts:\n\n'+issues.map(i=>i.driver+' — '+i.doc+' ('+i.status+')').join('\n'));
+}
+
+// ════ PDF EXPORT ════
+function exportDriverPDF(dId){
+  const d = dId ? drivers.find(x=>x.id===dId) : selectedDriver;
+  if(!d){ showToast('No driver selected'); return; }
+  const docs = getDriverDocs(d);
+  const trips = d.trips || [];
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial,sans-serif;color:#111;max-width:800px;margin:0 auto;padding:32px;font-size:12px;}
+    h1{font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #c9a84c;padding-bottom:8px;margin-bottom:20px;}
+    h2{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;margin:20px 0 8px;border-bottom:1px solid #eee;padding-bottom:4px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+    th{background:#f5f0e8;padding:7px 10px;text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#666;border:1px solid #ddd;}
+    td{padding:7px 10px;border:1px solid #eee;vertical-align:top;}
+    .badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+    .ok{background:#e8f5e9;color:#2e7d32;} .exp{background:#ffebee;color:#c62828;} .pend{background:#fff8e1;color:#f57f17;} .missing{background:#f5f5f5;color:#666;}
+    .active{background:#e8f5e9;color:#2e7d32;} .idle{background:#fff8e1;color:#e65100;} .offline{background:#f5f5f5;color:#666;}
+    .footer{margin-top:32px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:8px;}
+  </style></head><body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+    <div><div style="font-size:11px;color:#999;letter-spacing:2px;text-transform:uppercase;">Baltic Global Fleet Command</div></div>
+    <div style="font-size:10px;color:#999;">Generated: ${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+  </div>
+  <h1>${d.name}</h1>
+
+  <h2>Driver Information</h2>
+  <table>
+    <tr><th>Field</th><th>Value</th><th>Field</th><th>Value</th></tr>
+    <tr><td>Vehicle</td><td><b>${d.vehicle}</b></td><td>Plate</td><td>${d.plate}</td></tr>
+    <tr><td>Phone</td><td>${d.phone}</td><td>Email</td><td>${d.email}</td></tr>
+    <tr><td>Status</td><td><span class="badge ${d.status}">${d.status.toUpperCase()}</span></td><td>Home State</td><td>${d.homeState||'—'}</td></tr>
+    <tr><td>Hire Date</td><td>${d.hireDate||'—'}</td><td>DOT #</td><td>${d.dotNumber||'—'}</td></tr>
+    <tr><td>CDL Number</td><td>${d.cdl||'—'}</td><td>CDL Class</td><td>Class ${d.cdlClass||'A'}</td></tr>
+    <tr><td>CDL Expiry</td><td>${d.cdlExpiry||'—'}</td><td>GPS Sharing</td><td>${d.locationSharing?'Active':'Off'}</td></tr>
+  </table>
+
+  <h2>Emergency Contact</h2>
+  <table>
+    <tr><th>Name</th><th>Relationship</th><th>Phone</th></tr>
+    <tr><td>${d.emergencyName||'—'}</td><td>${d.emergencyRelation||'—'}</td><td>${d.emergencyPhone||'—'}</td></tr>
+  </table>
+
+  <h2>Documents</h2>
+  <table>
+    <tr><th>Document</th><th>Status</th><th>Date</th><th>File</th></tr>
+    ${docs.map(doc=>`<tr><td>${doc.name}</td><td><span class="badge ${doc.status||'missing'}">${(doc.status||'missing').toUpperCase()}</span></td><td>${doc.date||'—'}</td><td>${doc.file||'Not uploaded'}</td></tr>`).join('')}
+  </table>
+
+  <h2>Trip History (${trips.length} trips)</h2>
+  <table>
+    <tr><th>Date</th><th>Route</th><th>Cargo</th><th>Miles</th><th>Status</th></tr>
+    ${trips.map(t=>`<tr><td>${t.date||'—'}</td><td>${t.from.split(',')[0]} → ${t.to.split(',')[0]}</td><td>${t.cargo||'—'}</td><td>${t.miles||'—'}</td><td>${(t.phase||'complete').toUpperCase()}</td></tr>`).join('')}
+  </table>
+
+  ${d.notes?`<h2>Notes</h2><p>${d.notes}</p>`:''}
+  <div class="footer">Baltic Global Fleet Command &nbsp;·&nbsp; Confidential &nbsp;·&nbsp; Driver Report</div>
+  </body></html>`;
+
+  const win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(), 500);
+}
+
+function exportAllDriversPDF(){
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial,sans-serif;color:#111;max-width:1000px;margin:0 auto;padding:32px;font-size:11px;}
+    h1{font-size:22px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #c9a84c;padding-bottom:8px;margin-bottom:8px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:24px;}
+    th{background:#f5f0e8;padding:7px 8px;text-align:left;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#666;border:1px solid #ddd;}
+    td{padding:7px 8px;border:1px solid #eee;}
+    .badge{display:inline-block;padding:1px 6px;font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+    .active{background:#e8f5e9;color:#2e7d32;} .idle{background:#fff8e1;color:#e65100;} .offline{background:#f5f5f5;color:#666;}
+    .ok{background:#e8f5e9;color:#2e7d32;} .issues{background:#ffebee;color:#c62828;}
+  </style></head><body>
+  <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+    <div style="font-size:11px;color:#999;letter-spacing:2px;text-transform:uppercase;">Baltic Global Fleet Command</div>
+    <div style="font-size:10px;color:#999;">${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+  </div>
+  <h1>Fleet Driver Report · ${drivers.length} Drivers</h1>
+  <table>
+    <tr><th>#</th><th>Name</th><th>Vehicle</th><th>Plate</th><th>Phone</th><th>CDL</th><th>CDL Exp</th><th>Status</th><th>Docs</th><th>Trips</th></tr>
+    ${drivers.map((d,i)=>{
+      const docs=getDriverDocs(d); const bad=docs.filter(x=>x.status==='exp'||x.status==='missing').length;
+      return `<tr>
+        <td>${i+1}</td>
+        <td><b>${d.name}</b><br><span style="color:#999;font-size:9px">${d.email}</span></td>
+        <td>${d.vehicle}</td><td>${d.plate}</td><td>${d.phone}</td>
+        <td>${d.cdl||'—'}</td><td>${d.cdlExpiry||'—'}</td>
+        <td><span class="badge ${d.status}">${d.status.toUpperCase()}</span></td>
+        <td><span class="badge ${bad>0?'issues':'ok'}">${bad>0?bad+' Issues':'OK'}</span></td>
+        <td>${d.trips.length}</td>
+      </tr>`;
+    }).join('')}
+  </table>
+  <div style="font-size:10px;color:#999;border-top:1px solid #eee;padding-top:8px;">Baltic Global Fleet Command &nbsp;·&nbsp; Confidential</div>
+  </body></html>`;
+  const win = window.open('','_blank'); win.document.write(html); win.document.close(); win.focus(); setTimeout(()=>win.print(),500);
+}
+
+function exportAllTripsPDF(){
+  const allTrips = [];
+  drivers.forEach(d=>{ d.trips.forEach(t=>allTrips.push({...t,driverName:d.name,vehicle:d.vehicle})); });
+  allTrips.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial,sans-serif;color:#111;max-width:1000px;margin:0 auto;padding:32px;font-size:11px;}
+    h1{font-size:22px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #c9a84c;padding-bottom:8px;margin-bottom:8px;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#f5f0e8;padding:7px 8px;text-align:left;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#666;border:1px solid #ddd;}
+    td{padding:7px 8px;border:1px solid #eee;}
+    .badge{display:inline-block;padding:1px 6px;font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+    .complete{background:#e8f5e9;color:#2e7d32;} .in_delivery,.departed{background:#fff8e1;color:#e65100;} .pending{background:#f5f5f5;color:#666;}
+  </style></head><body>
+  <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+    <div style="font-size:11px;color:#999;letter-spacing:2px;text-transform:uppercase;">Baltic Global Fleet Command</div>
+    <div style="font-size:10px;color:#999;">${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+  </div>
+  <h1>Fleet Trip Report · ${allTrips.length} Trips</h1>
+  <table>
+    <tr><th>Date</th><th>Driver</th><th>Vehicle</th><th>From</th><th>To</th><th>Cargo</th><th>Miles</th><th>Status</th><th>Pickup</th><th>Delivery</th></tr>
+    ${allTrips.map(t=>`<tr>
+      <td>${t.date||'—'}</td>
+      <td>${t.driverName}</td>
+      <td>${t.vehicle}</td>
+      <td>${(t.from||'').split(',')[0]}</td>
+      <td>${(t.to||'').split(',')[0]}</td>
+      <td>${t.cargo||'—'}</td>
+      <td>${t.miles||'—'}</td>
+      <td><span class="badge ${t.phase||'complete'}">${(t.phase||'complete').toUpperCase().replace('_',' ')}</span></td>
+      <td style="font-size:9px">${t.pickup&&t.pickup.arrivedAt?'&#10003; '+t.pickup.arrivedAt:'—'}</td>
+      <td style="font-size:9px">${t.delivery&&t.delivery.arrivedAt?'&#10003; '+t.delivery.arrivedAt:'—'}</td>
+    </tr>`).join('')}
+  </table>
+  <div style="font-size:10px;color:#999;border-top:1px solid #eee;padding-top:8px;margin-top:16px;">Baltic Global Fleet Command &nbsp;·&nbsp; Confidential</div>
+  </body></html>`;
+  const win = window.open('','_blank'); win.document.write(html); win.document.close(); win.focus(); setTimeout(()=>win.print(),500);
+}
+
+function exportTripPDF(dId){
+  const d = drivers.find(x=>x.id===dId) || selectedDriver;
+  exportDriverPDF(d.id);
+}
+
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg.toUpperCase(); t.style.display='block';
