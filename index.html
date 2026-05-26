@@ -1125,6 +1125,27 @@ input[type=file]{display:none;}
 
   <!-- MANAGER VIEW -->
   <div class="view" id="view-manager">
+    <!-- Mobile sidebar overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- Mobile bottom nav bar -->
+    <div class="mobile-mgr-bar">
+      <button class="mob-nav-btn active" id="mob-map-btn" onclick="mobileTab('map')">
+        <span class="mob-ico">🗺</span><span class="mob-lbl">Map</span>
+      </button>
+      <button class="mob-nav-btn" id="mob-drivers-btn" onclick="mobileTab('drivers')">
+        <span class="mob-ico">👥</span><span class="mob-lbl">Drivers</span>
+      </button>
+      <button class="mob-nav-btn" id="mob-panel-btn" onclick="mobileTab('panel')">
+        <span class="mob-ico">📋</span><span class="mob-lbl">Details</span>
+      </button>
+      <button class="mob-nav-btn" id="mob-chat-mob-btn" onclick="mobileTab('chat')">
+        <span class="mob-ico">💬</span><span class="mob-lbl">Chat<span id="mob-chat-badge" style="display:none;background:var(--red);color:#fff;border-radius:8px;font-size:8px;padding:1px 4px;margin-left:2px;"></span></span>
+      </button>
+      <button class="mob-nav-btn" id="mob-admin-btn" onclick="openAdminPanel()">
+        <span class="mob-ico">⚙️</span><span class="mob-lbl">Admin</span>
+      </button>
+    </div>
     <aside class="mgr-sidebar">
       <div class="mgr-sidebar-top">
         <div class="sec-lbl">Fleet Overview</div>
@@ -1176,6 +1197,24 @@ input[type=file]{display:none;}
 
   <!-- DRIVER VIEW -->
   <div class="view" id="view-driver" style="overflow:auto;">
+    <!-- Mobile driver bottom nav -->
+    <div class="mobile-mgr-bar" id="drv-mobile-bar" style="display:none;">
+      <button class="mob-nav-btn active" id="drv-mob-home" onclick="drvMobileScroll('drv-section-info')">
+        <span class="mob-ico">🏠</span><span class="mob-lbl">Home</span>
+      </button>
+      <button class="mob-nav-btn" id="drv-mob-docs" onclick="drvMobileScroll('drv-section-docs')">
+        <span class="mob-ico">📄</span><span class="mob-lbl">Docs</span>
+      </button>
+      <button class="mob-nav-btn" id="drv-mob-trips" onclick="drvMobileScroll('drv-section-trips')">
+        <span class="mob-ico">🚛</span><span class="mob-lbl">Trips</span>
+      </button>
+      <button class="mob-nav-btn" id="drv-mob-msg" onclick="drvMobileScroll('drv-section-chat')">
+        <span class="mob-ico">💬</span><span class="mob-lbl">Messages</span>
+      </button>
+      <button class="mob-nav-btn" onclick="doLogout()">
+        <span class="mob-ico">🚪</span><span class="mob-lbl">Logout</span>
+      </button>
+    </div>
     <div class="drv-main" id="drv-main"></div>
   </div>
 </div>
@@ -1499,6 +1538,10 @@ function launchApp(user){
     av.className='tn-av drv'; rb.className='tn-role-badge driver'; rb.textContent='Driver';
     showView('driver'); buildDriverUI(user);
     setTimeout(() => { showFbBanner(); startDriverMessaging(user.id); }, 800);
+    // Show driver bottom nav on mobile
+    if (window.innerWidth <= 768) {
+      document.getElementById('drv-mobile-bar').style.display = 'flex';
+    }
   }
 }
 function showView(v){
@@ -1586,7 +1629,10 @@ function initLeafletMap() {
     center: [39.5, -98.35],
     zoom: 4,
     zoomControl: false,
-    attributionControl: true
+    attributionControl: true,
+    tap: true,          // iOS touch support
+    tapTolerance: 15,   // more forgiving tap detection
+    bounceAtZoomLimits: false
   });
 
   // OpenStreetMap tiles — real map like the screenshot
@@ -2154,7 +2200,7 @@ function buildDriverUI(user){
     </div>
 
     <!-- Messages -->
-    <div class="drv-section" style="padding:0;overflow:hidden;">
+    <div class="drv-section" id="drv-section-chat" style="padding:0;overflow:hidden;">
       <div class="drv-chat-wrap" id="drv-chat-wrap-${d.id}">
         <div class="drv-chat-header">
           <div class="drv-chat-av">M</div>
@@ -2179,7 +2225,7 @@ function buildDriverUI(user){
     </div>
 
     <!-- GPS Live Panel -->
-    <div class="drv-section">
+    <div class="drv-section" id="drv-section-info">
       <div class="drv-sec-title">Live GPS Location</div>
       <div style="margin-bottom:12px;padding:12px;background:var(--black-3);border:1px solid var(--gold-10);font-family:var(--mono);font-size:8px;color:var(--t2);line-height:1.9;letter-spacing:.5px;">
         When you tap <b style="color:var(--gold)">Start Location Sharing</b>, your browser will ask for permission to access your GPS.
@@ -2206,7 +2252,7 @@ function buildDriverUI(user){
     </div>
 
     <!-- Documents -->
-    <div class="drv-section" id="drv-docs-section">
+    <div class="drv-section" id="drv-section-docs" id="drv-docs-section">
       <div class="drv-sec-title">My Documents (${compDocs}/${docs.length} complete)</div>
       ${docs.map((doc,i)=>`
       <div class="req-doc ${doc.status==='ok'?'has':doc.status==='exp'?'expired':'missing'}" id="rdoc-${d.id}-${i}">
@@ -2231,7 +2277,7 @@ function buildDriverUI(user){
     </div>
 
     <!-- Trip Workflow -->
-    <div class="drv-section" style="padding:0;overflow:hidden;background:transparent;border:none;">
+    <div class="drv-section" id="drv-section-trips" style="padding:0;overflow:hidden;background:transparent;border:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <div class="drv-sec-title" style="margin-bottom:0;">My Trips</div>
         <button class="tw-new-btn" style="width:auto;padding:8px 18px;font-size:9px;" onclick="openNewTripForm(${d.id})">+ New Trip</button>
@@ -2824,7 +2870,108 @@ function uploadTripFile(tid, dId, stage, key, slotId) {
 // Legacy logTrip kept for compatibility
 function logTrip(dId){ createTrip(dId); }
 
-// ════ MESSAGING ENGINE ════
+// ════ MOBILE NAVIGATION ════
+let isMobile = () => window.innerWidth <= 768;
+
+function mobileTab(tab) {
+  if (!isMobile()) return;
+  // Update bottom nav active state
+  document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.remove('active'));
+  const btnMap = { map:'mob-map-btn', drivers:'mob-drivers-btn', panel:'mob-panel-btn', chat:'mob-chat-mob-btn' };
+  const activeBtn = document.getElementById(btnMap[tab]);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  const sidebar  = document.querySelector('.mgr-sidebar');
+  const rpanel   = document.querySelector('.mgr-rpanel');
+  const overlay  = document.getElementById('sidebar-overlay');
+
+  if (tab === 'map') {
+    sidebar?.classList.remove('open');
+    rpanel?.classList.remove('open');
+    overlay?.classList.remove('show');
+  } else if (tab === 'drivers') {
+    sidebar?.classList.add('open');
+    rpanel?.classList.remove('open');
+    overlay?.classList.add('show');
+  } else if (tab === 'panel') {
+    sidebar?.classList.remove('open');
+    rpanel?.classList.add('open');
+    overlay?.classList.remove('show');
+  } else if (tab === 'chat') {
+    sidebar?.classList.remove('open');
+    rpanel?.classList.add('open');
+    overlay?.classList.remove('show');
+    rtab('chat');
+  }
+}
+
+function closeMobileSidebar() {
+  document.querySelector('.mgr-sidebar')?.classList.remove('open');
+  document.getElementById('sidebar-overlay')?.classList.remove('show');
+  document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mob-map-btn')?.classList.add('active');
+}
+
+// When driver is picked on mobile, show detail panel
+const _origPickDriver = typeof pickDriver !== 'undefined' ? null : null;
+function pickDriverMobile(id) {
+  pickDriver(id);
+  if (isMobile()) {
+    closeMobileSidebar();
+    setTimeout(() => mobileTab('panel'), 100);
+  }
+}
+
+// Sync mobile chat badge with desktop badge
+const _origUpdateChatBadge = updateChatBadge;
+function updateChatBadge() {
+  _origUpdateChatBadge();
+  const mob = document.getElementById('mob-chat-badge');
+  const desk = document.getElementById('chat-badge');
+  if (mob && desk) {
+    const n = parseInt(desk.textContent) || 0;
+    mob.textContent = n > 9 ? '9+' : n;
+    mob.style.display = n > 0 ? 'inline' : 'none';
+  }
+}
+
+// Touch-friendly: tap driver card opens panel on mobile
+document.addEventListener('click', e => {
+  if (!isMobile()) return;
+  const card = e.target.closest('.dcard');
+  if (card) {
+    const id = parseInt(card.getAttribute('onclick')?.match(/\d+/)?.[0]);
+    if (id) { pickDriver(id); setTimeout(()=>mobileTab('panel'),100); }
+  }
+});
+
+// Swipe to close sidebar on mobile
+(function(){
+  let startX = 0;
+  document.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (!isMobile()) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const sidebar = document.querySelector('.mgr-sidebar');
+    if (sidebar?.classList.contains('open') && dx < -60) closeMobileSidebar();
+  }, {passive:true});
+})();
+
+// Add meta viewport height fix for iOS Safari
+function fixIOSHeight() {
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', vh + 'px');
+}
+window.addEventListener('resize', fixIOSHeight);
+fixIOSHeight();
+
+function drvMobileScroll(sectionId) {
+  const el = document.getElementById(sectionId);
+  if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+  document.querySelectorAll('#drv-mobile-bar .mob-nav-btn').forEach(b => b.classList.remove('active'));
+  if(event && event.currentTarget) event.currentTarget.classList.add('active');
+}
+
 // Messages stored per driver conversation: fleet/messages/{driverId}/[]
 // Each message: { id, from, fromName, text, ts, read }
 
