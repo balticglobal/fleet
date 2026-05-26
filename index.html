@@ -1495,6 +1495,21 @@ function showSignUpSuccess(name, email){
 
 function doLoginSuccess(user){
   currentUser = user;
+  // ── Save session to localStorage ──
+  try {
+    localStorage.setItem('bg_session', JSON.stringify({
+      id:       user.id,
+      name:     user.name,
+      email:    user.email,
+      role:     user.role,
+      vehicle:  user.vehicle  || '',
+      plate:    user.plate    || '',
+      phone:    user.phone    || '',
+      init:     user.init     || user.name?.charAt(0) || '?',
+      savedAt:  Date.now()
+    }));
+  } catch(e) {}
+
   document.getElementById('lg-lbl').textContent = '✓ Access Granted';
   document.getElementById('lg-spin').style.display = 'none';
   setTimeout(()=>{
@@ -1513,6 +1528,45 @@ function lgErr(msg){
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter' && document.getElementById('screen-login').style.display!=='none') lgSubmit();
 });
+
+// ── Auto-restore session on page load ──
+(function restoreSession(){
+  try {
+    const raw = localStorage.getItem('bg_session');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    // Expire after 7 days
+    if (!saved.savedAt || Date.now() - saved.savedAt > 7 * 24 * 60 * 60 * 1000) {
+      localStorage.removeItem('bg_session'); return;
+    }
+    // Restore manager
+    if (saved.role === 'manager') {
+      currentUser = { ...MANAGER, ...saved, role: 'manager' };
+      const ls = document.getElementById('screen-login');
+      ls.style.display = 'none';
+      launchApp(currentUser);
+      return;
+    }
+    // Restore driver — look them up in drivers array first
+    const d = drivers.find(x => x.email === saved.email);
+    if (d) {
+      currentUser = { ...d, role: 'driver', savedAt: saved.savedAt };
+      const ls = document.getElementById('screen-login');
+      ls.style.display = 'none';
+      launchApp(currentUser);
+      return;
+    }
+    // Registered driver (from Firebase sign-up) — restore with saved data
+    if (saved.role === 'driver') {
+      currentUser = { ...saved, role: 'driver' };
+      const ls = document.getElementById('screen-login');
+      ls.style.display = 'none';
+      launchApp(currentUser);
+    }
+  } catch(e) {
+    localStorage.removeItem('bg_session');
+  }
+})();
 
 // ════ APP LAUNCH ════
 function launchApp(user){
@@ -1556,7 +1610,9 @@ function doLogout(){
   // Stop Firebase manager listener
   if (currentUser?.role === 'manager') fbStopManagerListener();
   fbStatusShown = false;
-  currentUser=null;
+  currentUser = null;
+  // ── Clear saved session ──
+  try { localStorage.removeItem('bg_session'); } catch(e) {}
   document.getElementById('app').classList.remove('show');
   const ls=document.getElementById('screen-login');
   ls.style.display='flex'; ls.classList.remove('out');
@@ -1566,6 +1622,12 @@ function doLogout(){
   document.getElementById('lg-btn').disabled=false;
   document.getElementById('lg-lbl').textContent='→ Sign In';
   document.getElementById('lg-spin').style.display='none';
+  // Hide mobile bars
+  document.getElementById('drv-mobile-bar').style.display='none';
+  const adminBtn=document.getElementById('admin-btn');
+  const pdfBtn=document.getElementById('pdf-btn');
+  if(adminBtn) adminBtn.style.display='none';
+  if(pdfBtn)   pdfBtn.style.display='none';
 }
 
 // ════ CLOCK ════
