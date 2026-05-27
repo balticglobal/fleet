@@ -535,16 +535,66 @@ function fbListenLoads(){
 
 function fbListenDrivers(){
   if(!fbMode)return;
+
+  // ── Listen to registered drivers (sign-ups) ──
+  window._fb.onValue(window._fb.ref(window._fb.db,'fleet/registered_drivers'),snap=>{
+    const data=snap.val()||{};
+    Object.entries(data).forEach(([id,d])=>{
+      const numId=parseInt(id)||id;
+      const existing=drivers.find(x=>String(x.id)===String(id)||x.email===d.email);
+      if(!existing){
+        // Add new driver to local array
+        const newDrv={
+          id:numId, name:d.name||'Driver', init:mkInit(d.name||'D'),
+          email:d.email||'', password:d.password||'',
+          vehicle:d.vehicle||'—', plate:d.plate||'—', phone:d.phone||'—',
+          cdl:d.cdl||'', cdlClass:d.cdlClass||'A', cdlExpiry:d.cdlExpiry||'',
+          dotNumber:d.dotNumber||'', hireDate:d.hireDate||'',
+          homeState:d.homeState||'', notes:d.notes||'',
+          emergencyName:d.emergencyName||'', emergencyPhone:d.emergencyPhone||'',
+          emergencyRelation:d.emergencyRelation||'',
+          status:d.status||'offline', gpsReal:false, locationSharing:false,
+          lat:d.lat||39.5+(Math.random()-.5)*5,
+          lng:d.lng||(-98.35+(Math.random()-.5)*10),
+          city:d.city||'—', speed:'—', dest:null,
+          docs:DOC_TYPES.map(t=>({name:t,date:'—',status:'missing',file:null})),
+          trips:[]
+        };
+        drivers.push(newDrv);
+        // Also start listening for their messages
+        if(currentUser?.role==='manager') fbListenMsgs(numId);
+      }
+    });
+    renderMarkers(); updateMapStats(); renderDriversTable();
+    if(document.getElementById('view-drivers').classList.contains('active')) renderDriversTable();
+  });
+
+  // ── Listen to driver locations + docs ──
   window._fb.onValue(window._fb.ref(window._fb.db,'fleet/drivers'),snap=>{
     const data=snap.val()||{};
     Object.entries(data).forEach(([id,d])=>{
       const drv=drivers.find(x=>String(x.id)===String(id));
-      if(!drv)return;
-      if(d.location&&d.location.lat){const l=d.location;drv.lat=l.lat;drv.lng=l.lng;drv.speed=l.speed||drv.speed;drv.city=l.city||drv.city;drv.gpsReal=true;drv.status='active';}
-      if(d.docs){Object.entries(d.docs).forEach(([k,v])=>{const doc=drv.docs.find(x=>x.name.replace(/\s+/g,'_')===k);if(doc)Object.assign(doc,v);});}
+      if(!drv) return;
+      if(d.location&&d.location.lat){
+        const l=d.location;
+        drv.lat=l.lat; drv.lng=l.lng;
+        drv.speed=l.speed||drv.speed;
+        drv.city=l.city||drv.city;
+        drv.gpsReal=true; drv.status='active'; drv.locationSharing=true;
+      }
+      if(d.docs){
+        Object.entries(d.docs).forEach(([k,v])=>{
+          const doc=drv.docs.find(x=>x.name.replace(/\s+/g,'_')===k);
+          if(doc) Object.assign(doc,v);
+        });
+      }
+      if(d.profile){
+        Object.assign(drv,d.profile);
+        drv.init=mkInit(drv.name||'D');
+      }
     });
-    renderMarkers();updateMapStats();
-    if(document.getElementById('view-drivers').classList.contains('active'))renderDriversTable();
+    renderMarkers(); updateMapStats();
+    if(document.getElementById('view-drivers').classList.contains('active')) renderDriversTable();
   });
 }
 
@@ -658,9 +708,25 @@ window.addEventListener('DOMContentLoaded',()=>{
     const s=JSON.parse(raw);
     if(!s.savedAt||Date.now()-s.savedAt>7*24*60*60*1000){localStorage.removeItem('bg_session');return;}
     if(s.role==='manager'){doLogin({...MANAGER,...s,role:'manager'});return;}
-    const d=drivers.find(x=>x.email===s.email);
-    if(d)doLogin({...d,role:'driver'});
-    else if(s.role==='driver'&&s.email)doLogin({...s,role:'driver'});
+    // For drivers — restore directly with saved data (Firebase will sync the rest)
+    if(s.role==='driver'&&s.email){
+      // Build a proper driver object from saved session
+      const restored={
+        id:s.id, name:s.name||'Driver', init:s.init||mkInit(s.name||'D'),
+        email:s.email, password:s.password||'',
+        vehicle:s.vehicle||'—', plate:s.plate||'—', phone:s.phone||'—',
+        status:s.status||'offline', gpsReal:false, locationSharing:false,
+        lat:39.5, lng:-98.35, city:'—', speed:'—', dest:null,
+        cdl:'', cdlClass:'A', cdlExpiry:'', dotNumber:'',
+        emergencyName:'', emergencyPhone:'', emergencyRelation:'',
+        hireDate:'', homeState:'', notes:'',
+        docs:DOC_TYPES.map(t=>({name:t,date:'—',status:'missing',file:null})),
+        trips:[], role:'driver'
+      };
+      // Add to drivers array if not already there
+      if(!drivers.find(x=>x.email===restored.email)) drivers.push(restored);
+      doLogin(restored);
+    }
   }catch(e){localStorage.removeItem('bg_session');}
 });
 
@@ -1175,27 +1241,51 @@ function sendDrvMsg(dId){
 
 // ════ DRIVER GPS ════
 function startDrvGPS(dId){
-  if(!navigator.geolocation){showToast('GPS not available');return;}
+  if(!navigator.geolocation){showToast('GPS not available on this device');return;}
   gpsActive=true;
   gpsWatchId=navigator.geolocation.watchPosition(pos=>{
-    const {latitude:lat,longitude:lng,speed}=pos.coords;
-    const d=drivers.find(x=>x.id===dId);if(!d)return;
-    d.lat=lat;d.lng=lng;d.gpsReal=true;d.locationSharing=true;d.status='active';
+    const {latitude:lat,longitude:lng,speed,accuracy}=pos.coords;
+    const d=drivers.find(x=>x.id===dId)||currentUser;
+    if(!d)return;
+    if(d.id) d.lat=lat, d.lng=lng, d.gpsReal=true, d.locationSharing=true, d.status='active';
     d.speed=speed?Math.round(speed*2.237)+' mph':'0 mph';
-    fbUpd('fleet/drivers/'+dId+'/location',{lat,lng,speed:d.speed,city:d.city,name:d.name,vehicle:d.vehicle,plate:d.plate,ts:Date.now()});
+
+    const locData={lat,lng,speed:d.speed,city:d.city||'—',
+      name:d.name,vehicle:d.vehicle||'—',plate:d.plate||'—',
+      accuracy:Math.round(accuracy||0),ts:Date.now()};
+
+    // Write to both paths so manager always sees it
+    fbUpd('fleet/drivers/'+dId+'/location', locData);
+    fbUpd('fleet/registered_drivers/'+dId, {lat,lng,status:'active',speed:d.speed,city:d.city||'—'});
+
     // Reverse geocode
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`)
-      .then(r=>r.json()).then(data=>{const c=data.address?.city||data.address?.town||'';const s=data.address?.state||'';if(c)drivers.find(x=>x.id===dId).city=s?c+', '+s:c;}).catch(()=>{});
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=10')
+      .then(r=>r.json()).then(data=>{
+        const city=data.address?.city||data.address?.town||data.address?.village||'';
+        const state=data.address?.state||'';
+        if(city){
+          const cityStr=state?city+', '+state:city;
+          if(d.id) drivers.find(x=>x.id===dId) && (drivers.find(x=>x.id===dId).city=cityStr);
+          fbUpd('fleet/drivers/'+dId+'/location',{city:cityStr});
+        }
+      }).catch(()=>{});
+
     renderDrvDash();
-  },{enableHighAccuracy:true,timeout:15000,maximumAge:5000});
-  renderDrvDash();showToast('GPS location sharing started');
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:3000});
+
+  showToast('📍 Location sharing started');
+  renderDrvDash();
 }
 
 function stopDrvGPS(dId){
-  if(gpsWatchId)navigator.geolocation.clearWatch(gpsWatchId);
-  gpsActive=false;gpsWatchId=null;
-  const d=drivers.find(x=>x.id===dId);if(d){d.locationSharing=false;d.gpsReal=false;}
-  showToast('Location sharing stopped');renderDrvDash();
+  if(gpsWatchId){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
+  gpsActive=false;
+  const d=drivers.find(x=>x.id===dId);
+  if(d){d.locationSharing=false;d.gpsReal=false;d.status='offline';}
+  fbUpd('fleet/registered_drivers/'+dId,{status:'offline'});
+  fbUpd('fleet/drivers/'+dId+'/location',{active:false});
+  showToast('Location sharing stopped');
+  renderDrvDash();
 }
 
 // ════ DRIVER DOC UPLOAD ════
