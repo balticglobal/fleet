@@ -1158,8 +1158,8 @@ function renderDrvDash(){
         <span class="sbadge ${d.status}"><span class="dot"></span>${d.status}</span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button onclick="${gpsActive?`stopDrvGPS(${d.id})`:`startDrvGPS(${d.id})`}" style="padding:9px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid;${gpsActive?'background:var(--gbg);color:var(--green);border-color:var(--gbd)':'background:#f3f4f6;color:#111;border-color:#d1d5db'}">
-          📍 ${gpsActive?'GPS Active — Stop':'Share My Location'}
+        <button onclick="if(${gpsActive}){stopDrvGPS(${d.id})}else{startDrvGPS(${d.id})}" style="padding:9px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid;${gpsActive?'background:var(--gbg);color:var(--green);border-color:var(--gbd)':'background:#f3f4f6;color:#111;border-color:#d1d5db'}">
+          📍 ${gpsActive?'GPS Active — Tap to Stop':'Share My Location'}
         </button>
       </div>
       ${gpsActive?`<div class="alert-ok" style="margin-top:10px">📍 Broadcasting live to manager · Speed: ${d.speed}</div>`:''}
@@ -1241,40 +1241,68 @@ function sendDrvMsg(dId){
 
 // ════ DRIVER GPS ════
 function startDrvGPS(dId){
-  if(!navigator.geolocation){showToast('GPS not available on this device');return;}
-  gpsActive=true;
-  gpsWatchId=navigator.geolocation.watchPosition(pos=>{
-    const {latitude:lat,longitude:lng,speed,accuracy}=pos.coords;
-    const d=drivers.find(x=>x.id===dId)||currentUser;
-    if(!d)return;
-    if(d.id) d.lat=lat, d.lng=lng, d.gpsReal=true, d.locationSharing=true, d.status='active';
-    d.speed=speed?Math.round(speed*2.237)+' mph':'0 mph';
+  if(!navigator.geolocation){
+    showToast('GPS not supported on this browser');
+    return;
+  }
 
-    const locData={lat,lng,speed:d.speed,city:d.city||'—',
-      name:d.name,vehicle:d.vehicle||'—',plate:d.plate||'—',
-      accuracy:Math.round(accuracy||0),ts:Date.now()};
+  // iOS Safari requires immediate geolocation call on user tap
+  showToast('Requesting location permission…');
 
-    // Write to both paths so manager always sees it
-    fbUpd('fleet/drivers/'+dId+'/location', locData);
-    fbUpd('fleet/registered_drivers/'+dId, {lat,lng,status:'active',speed:d.speed,city:d.city||'—'});
+  navigator.geolocation.getCurrentPosition(
+    // Success — we have permission, now start watching
+    (pos)=>{
+      gpsActive = true;
+      const {latitude:lat, longitude:lng, speed} = pos.coords;
+      const d = drivers.find(x=>x.id===dId) || currentUser;
+      if(d){ d.lat=lat; d.lng=lng; d.gpsReal=true; d.locationSharing=true; d.status='active'; d.speed=speed?Math.round(speed*2.237)+' mph':'0 mph'; }
 
-    // Reverse geocode
-    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=10')
-      .then(r=>r.json()).then(data=>{
-        const city=data.address?.city||data.address?.town||data.address?.village||'';
-        const state=data.address?.state||'';
-        if(city){
-          const cityStr=state?city+', '+state:city;
-          if(d.id) drivers.find(x=>x.id===dId) && (drivers.find(x=>x.id===dId).city=cityStr);
-          fbUpd('fleet/drivers/'+dId+'/location',{city:cityStr});
-        }
-      }).catch(()=>{});
+      const locData={lat,lng,speed:d?.speed||'0 mph',city:d?.city||'—',name:d?.name||'Driver',vehicle:d?.vehicle||'—',plate:d?.plate||'—',ts:Date.now()};
+      fbUpd('fleet/drivers/'+dId+'/location', locData);
+      fbUpd('fleet/registered_drivers/'+dId, {lat,lng,status:'active',speed:d?.speed||'0 mph'});
 
-    renderDrvDash();
-  },{enableHighAccuracy:true,timeout:15000,maximumAge:3000});
+      showToast('📍 Location shared successfully!');
+      renderDrvDash();
 
-  showToast('📍 Location sharing started');
-  renderDrvDash();
+      // Now start continuous watch
+      if(gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
+      gpsWatchId = navigator.geolocation.watchPosition(
+        (pos2)=>{
+          const {latitude:lat2, longitude:lng2, speed:spd2} = pos2.coords;
+          const d2 = drivers.find(x=>x.id===dId) || currentUser;
+          if(d2){ d2.lat=lat2; d2.lng=lng2; d2.gpsReal=true; d2.status='active'; d2.speed=spd2?Math.round(spd2*2.237)+' mph':'0 mph'; }
+          const loc2={lat:lat2,lng:lng2,speed:d2?.speed||'0 mph',city:d2?.city||'—',name:d2?.name||'Driver',vehicle:d2?.vehicle||'—',plate:d2?.plate||'—',ts:Date.now()};
+          fbUpd('fleet/drivers/'+dId+'/location', loc2);
+          fbUpd('fleet/registered_drivers/'+dId, {lat:lat2,lng:lng2,status:'active',speed:d2?.speed||'0 mph'});
+          // Reverse geocode
+          fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat2+'&lon='+lng2+'&zoom=10')
+            .then(r=>r.json()).then(data=>{
+              const city=data.address?.city||data.address?.town||data.address?.village||'';
+              const state=data.address?.state||'';
+              if(city){
+                const cityStr=state?city+', '+state:city;
+                const drv=drivers.find(x=>x.id===dId);
+                if(drv) drv.city=cityStr;
+                fbUpd('fleet/drivers/'+dId+'/location',{city:cityStr});
+              }
+            }).catch(()=>{});
+          renderDrvDash();
+        },
+        (err)=>{ console.warn('GPS watch error:', err.message); },
+        {enableHighAccuracy:true, timeout:30000, maximumAge:5000}
+      );
+    },
+    // Error — show specific message
+    (err)=>{
+      let msg = 'Location access denied';
+      if(err.code===1) msg='Location blocked — go to Settings → Safari → Location → Allow';
+      if(err.code===2) msg='Location unavailable — check GPS signal';
+      if(err.code===3) msg='Location request timed out — try again';
+      showToast(msg);
+      alert(msg + '\n\nTo fix:\nSettings → Privacy & Security → Location Services → Safari Websites → While Using App');
+    },
+    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+  );
 }
 
 function stopDrvGPS(dId){
