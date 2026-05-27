@@ -1497,18 +1497,21 @@ function doLoginSuccess(user){
   currentUser = user;
   // ── Save session to localStorage ──
   try {
-    localStorage.setItem('bg_session', JSON.stringify({
-      id:       user.id,
-      name:     user.name,
-      email:    user.email,
-      role:     user.role,
+    const sessionData = {
+      id:       user.id       || null,
+      name:     user.name     || '',
+      email:    user.email    || '',
+      password: user.password || '',
+      role:     user.role     || 'driver',
       vehicle:  user.vehicle  || '',
       plate:    user.plate    || '',
       phone:    user.phone    || '',
-      init:     user.init     || user.name?.charAt(0) || '?',
+      init:     user.init     || (user.name ? mkInitials(user.name) : '?'),
+      status:   user.status   || 'offline',
       savedAt:  Date.now()
-    }));
-  } catch(e) {}
+    };
+    localStorage.setItem('bg_session', JSON.stringify(sessionData));
+  } catch(e) { console.warn('Could not save session:', e); }
 
   document.getElementById('lg-lbl').textContent = '✓ Access Granted';
   document.getElementById('lg-spin').style.display = 'none';
@@ -1530,7 +1533,7 @@ document.addEventListener('keydown',e=>{
 });
 
 // ── Auto-restore session on page load ──
-(function restoreSession(){
+window.addEventListener('DOMContentLoaded', function restoreSession(){
   try {
     const raw = localStorage.getItem('bg_session');
     if (!raw) return;
@@ -1543,7 +1546,7 @@ document.addEventListener('keydown',e=>{
     if (saved.role === 'manager') {
       currentUser = { ...MANAGER, ...saved, role: 'manager' };
       const ls = document.getElementById('screen-login');
-      ls.style.display = 'none';
+      if (ls) ls.style.display = 'none';
       launchApp(currentUser);
       return;
     }
@@ -1552,21 +1555,21 @@ document.addEventListener('keydown',e=>{
     if (d) {
       currentUser = { ...d, role: 'driver', savedAt: saved.savedAt };
       const ls = document.getElementById('screen-login');
-      ls.style.display = 'none';
+      if (ls) ls.style.display = 'none';
       launchApp(currentUser);
       return;
     }
     // Registered driver (from Firebase sign-up) — restore with saved data
-    if (saved.role === 'driver') {
+    if (saved.role === 'driver' && saved.email) {
       currentUser = { ...saved, role: 'driver' };
       const ls = document.getElementById('screen-login');
-      ls.style.display = 'none';
+      if (ls) ls.style.display = 'none';
       launchApp(currentUser);
     }
   } catch(e) {
     localStorage.removeItem('bg_session');
   }
-})();
+});
 
 // ════ APP LAUNCH ════
 function launchApp(user){
@@ -1644,6 +1647,8 @@ function buildManagerUI(){
     initLeafletMap();
     renderPins();
     renderPanel();
+    // Extra invalidate for mobile
+    setTimeout(() => { if(leafletMap) leafletMap.invalidateSize(true); }, 300);
   }, 80);
   // Set Firebase sync chip
   setTimeout(() => {
@@ -1687,24 +1692,42 @@ let leafletMarkers = {}; // driverId → L.marker
 function initLeafletMap() {
   if (leafletMap) return;
 
+  // Give the map container an explicit height BEFORE Leaflet init
+  const mapEl = document.getElementById('leaflet-map');
+  if (mapEl && window.innerWidth <= 768) {
+    const h = window.innerHeight - 52 - 56; // screen - topnav - bottombar
+    mapEl.style.position = 'absolute';
+    mapEl.style.top = '0';
+    mapEl.style.left = '0';
+    mapEl.style.right = '0';
+    mapEl.style.bottom = '0';
+    mapEl.style.width = '100%';
+    mapEl.style.height = h + 'px';
+  }
+
   leafletMap = L.map('leaflet-map', {
     center: [39.5, -98.35],
     zoom: 4,
     zoomControl: false,
     attributionControl: true,
-    tap: true,          // iOS touch support
-    tapTolerance: 15,   // more forgiving tap detection
+    tap: true,
+    tapTolerance: 15,
     bounceAtZoomLimits: false
   });
 
-  // OpenStreetMap tiles — real map like the screenshot
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
     maxZoom: 18
   }).addTo(leafletMap);
 
-  // Fix map size after it becomes visible
-  setTimeout(() => leafletMap.invalidateSize(), 100);
+  // Multiple invalidateSize calls to catch iOS rendering delays
+  [100, 400, 800, 1500].forEach(d =>
+    setTimeout(() => leafletMap && leafletMap.invalidateSize(true), d)
+  );
+
+  window.addEventListener('resize', () => {
+    setTimeout(() => leafletMap && leafletMap.invalidateSize(true), 200);
+  });
 }
 
 function getMarkerColor(status) {
@@ -2951,6 +2974,8 @@ function mobileTab(tab) {
     sidebar?.classList.remove('open');
     rpanel?.classList.remove('open');
     overlay?.classList.remove('show');
+    // Force Leaflet to recalculate map size
+    setTimeout(() => { if(leafletMap) leafletMap.invalidateSize(); }, 100);
   } else if (tab === 'drivers') {
     sidebar?.classList.add('open');
     rpanel?.classList.remove('open');
