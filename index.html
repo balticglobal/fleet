@@ -1300,10 +1300,29 @@ const drivers = DRIVER_NAMES.map((name,i)=>{
 // Auth users
 const MANAGER = { email:'admin@shipbalticglobal.com', password:'fleet2026', name:'Vladimir', role:'manager' };
 let currentUser = null;
-let selectedDriver = drivers[0];
 let curRtab = 'profile';
 let lgTabMode = 'manager';
-let driverUploads = {}; // { driverId: { docName: {file,date} } }
+let driverUploads = {};
+
+// ── Apply saved driver deletions & edits from localStorage ──
+(function applyDriverPersistence(){
+  try {
+    // Remove deleted drivers
+    const deleted = JSON.parse(localStorage.getItem('bg_deleted_drivers') || '[]');
+    deleted.forEach(id => {
+      const idx = drivers.findIndex(d => d.id === id);
+      if (idx !== -1) drivers.splice(idx, 1);
+    });
+    // Apply saved edits
+    const edits = JSON.parse(localStorage.getItem('bg_driver_edits') || '{}');
+    Object.entries(edits).forEach(([id, data]) => {
+      const d = drivers.find(x => x.id === parseInt(id));
+      if (d) Object.assign(d, data);
+    });
+  } catch(e) {}
+})();
+
+let selectedDriver = drivers[0];
 
 // ════ LOGIN / SIGNUP ════
 let registeredDrivers = []; // drivers registered via sign-up, loaded from Firebase
@@ -1929,6 +1948,16 @@ function saveDriverEdit(id) {
   d.emergencyName=g('e-ecname'); d.emergencyRelation=g('e-ecrel'); d.emergencyPhone=g('e-ecphone');
   renderDList(); renderPins(); renderPanel();
   showToast(name+' updated successfully');
+  // ── Persist edits to localStorage ──
+  try {
+    const edits = JSON.parse(localStorage.getItem('bg_driver_edits') || '{}');
+    edits[id] = { name:d.name, init:d.init, phone:d.phone, email:d.email,
+      password:d.password, vehicle:d.vehicle, plate:d.plate, status:d.status,
+      homeState:d.homeState, hireDate:d.hireDate, notes:d.notes,
+      cdl:d.cdl, cdlClass:d.cdlClass, cdlExpiry:d.cdlExpiry, dotNumber:d.dotNumber,
+      emergencyName:d.emergencyName, emergencyRelation:d.emergencyRelation, emergencyPhone:d.emergencyPhone };
+    localStorage.setItem('bg_driver_edits', JSON.stringify(edits));
+  } catch(e) {}
   if(fbMode && window._fb?.ready){
     window._fb.update(window._fb.ref(window._fb.db,'fleet/drivers/'+id+'/profile'),{
       name:d.name,phone:d.phone,email:d.email,vehicle:d.vehicle,plate:d.plate,status:d.status,
@@ -1953,12 +1982,23 @@ function confirmRemoveDriver(id) {
   const idx = drivers.findIndex(x => x.id === id);
   if (idx !== -1) drivers.splice(idx, 1);
 
+  // ── Persist deletion to localStorage ──
+  try {
+    const deleted = JSON.parse(localStorage.getItem('bg_deleted_drivers') || '[]');
+    if (!deleted.includes(id)) deleted.push(id);
+    localStorage.setItem('bg_deleted_drivers', JSON.stringify(deleted));
+    // Also remove from edits
+    const edits = JSON.parse(localStorage.getItem('bg_driver_edits') || '{}');
+    delete edits[id];
+    localStorage.setItem('bg_driver_edits', JSON.stringify(edits));
+  } catch(e) {}
+
   // Select next driver
   selectedDriver = drivers[0];
   updateStats();
   renderDList();
   renderPanel();
-  showToast(`Driver removed`);
+  showToast('Driver removed');
 }
 function scol(s){ return s==='active'?'var(--green)':s==='idle'?'var(--amber)':'var(--t2)'; }
 
