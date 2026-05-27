@@ -311,7 +311,7 @@ textarea.finp{resize:vertical;min-height:64px;}
   </div>
   <button class="bprimary" id="lg-btn" onclick="lgSubmit()">Sign In</button>
   <div class="lerr" id="lg-err"></div>
-  <div class="lhint" id="lg-hint"><b>Manager:</b> admin@shipbalticglobal.com / fleet2026<br><b>Driver demo:</b> driver1@sbg.com / driver123</div>
+  <div class="lhint" id="lg-hint"><b>Manager:</b> admin@shipbalticglobal.com / fleet2026<br><b>Drivers:</b> Use the Sign Up tab to create an account</div>
 </div>
 </div>
 
@@ -479,7 +479,7 @@ const US_CITIES=[
   {name:"Salt Lake City, UT",lat:40.76,lng:-111.89},{name:"New Orleans, LA",lat:29.95,lng:-90.07}
 ];
 const DOC_TYPES=['Driver License','Insurance','Vehicle Registration'];
-const DRIVER_NAMES=["Marcus Johnson","Tyler Williams","Jake Thompson","Chris Martinez","Derek Brown","Kevin Davis","Ryan Wilson","Brandon Moore","Justin Taylor","Eric Anderson","Nathan Jackson","Sean White","Adam Harris","Josh Robinson","Mike Clark","Daniel Lewis","Aaron Lee","Patrick Walker","Cody Hall","Travis Young","Kyle Allen","Jeremy King","Dustin Wright","Cameron Scott","Trevor Green","Austin Baker","Caleb Adams","Hunter Nelson","Garrett Carter","Blake Mitchell"];
+// No demo drivers
 function mkInit(n){return n.split(' ').map(w=>w[0]).join('');}
 function rStat(){const r=Math.random();return r<.45?'active':r<.65?'idle':'offline';}
 function rSpd(s){return s==='active'?`${Math.floor(45+Math.random()*45)} mph`:s==='idle'?'0 mph':'—';}
@@ -489,29 +489,11 @@ function fmtM(n){return n?'$'+Number(n).toLocaleString():'—';}
 function fmtT(ts){return new Date(ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
 function fmtD(ts){const d=new Date(ts);const now=new Date();if(d.toDateString()===now.toDateString())return 'Today';const y=new Date(now);y.setDate(y.getDate()-1);if(d.toDateString()===y.toDateString())return 'Yesterday';return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
 
-const drivers=DRIVER_NAMES.map((name,i)=>{
-  const city=US_CITIES[i%US_CITIES.length],status=rStat();
-  const others=US_CITIES.filter(c=>c.name!==city.name);
-  const destCity=status==='active'?others[Math.floor(Math.random()*others.length)]:null;
-  return{id:i+1,name,init:mkInit(name),
-    email:`driver${i+1}@sbg.com`,password:'driver123',
-    vehicle:`${['TRK','VAN','FLT'][i%3]}-${1000+i*31}`,
-    plate:`${['NY','CA','TX','FL','IL'][i%5]}${String(1000+i*77).substring(0,3)}`,
-    phone:`+1 (${200+i*3}) ${400+i*7}-${1000+i*33}`.replace(/\d{5}$/,m=>m.substring(0,4)),
-    cdl:`CDL-${String(100000+i*7331).substring(0,6)}`,cdlClass:['A','A','B'][i%3],
-    cdlExpiry:`${2025+Math.floor(i/10)}-${String(1+i%12).padStart(2,'0')}-15`,
-    dotNumber:`DOT-${String(200000+i*4411).substring(0,6)}`,
-    emergencyName:`${['Sarah','Mike','Jennifer'][i%3]} ${name.split(' ')[1]}`,
-    emergencyPhone:`+1 (${300+i*2}) ${500+i*3}-${2000+i*17}`.replace(/\d{5}$/,m=>m.substring(0,4)),
-    emergencyRelation:['Spouse','Parent','Sibling'][i%3],
-    hireDate:`${2019+Math.floor(i/6)}-${String(1+i%12).padStart(2,'0')}-01`,
-    homeState:['NY','CA','TX','FL','IL','OH','GA','WA','CO','TN'][i%10],
-    notes:'',status,gpsReal:false,locationSharing:status!=='offline',
-    lat:city.lat+(Math.random()-.5)*.8,lng:city.lng+(Math.random()-.5)*.8,
-    city:city.name,speed:rSpd(status),
-    dest:destCity?destCity.name:null,
-    docs:DOC_TYPES.map(t=>({name:t,date:rDate(),status:rDocStat(),file:null})),trips:[]};
-});
+// Start with empty drivers array — all drivers added via Sign Up or Firebase
+const drivers = [];
+
+// Clear old demo driver deletion/edit cache (no longer needed)
+try { localStorage.removeItem('bg_deleted_drivers'); localStorage.removeItem('bg_driver_edits'); } catch(e) {}
 
 // Persist deletions + edits
 (function(){
@@ -598,7 +580,7 @@ function lgTab(t){
   const btn=document.getElementById('lg-btn');
   const hint=document.getElementById('lg-hint');
   if(t==='signup'){btn.textContent='Create Account';hint.innerHTML='Enter your details to create a driver account.';}
-  else if(t==='driver'){btn.textContent='Sign In';hint.innerHTML='<b>Demo:</b> driver1@sbg.com / driver123';}
+  else if(t==='driver'){btn.textContent='Sign In';hint.innerHTML='Use the Sign Up tab to create a driver account.';}
   else{btn.textContent='Sign In';hint.innerHTML='<b>Manager:</b> admin@shipbalticglobal.com / fleet2026';}
   document.getElementById('lg-err').style.display='none';
 }
@@ -1120,7 +1102,7 @@ function renderDrvDash(){
     <!-- My Loads -->
     <div id="drv-loads" style="margin-bottom:14px">
       <div style="font-size:15px;font-weight:700;color:var(--g900);margin-bottom:10px">My Loads <span style="font-size:12px;color:var(--g400);font-weight:500">(${myLoads.length})</span></div>
-      ${myLoads.length===0?`<div style="background:#fff;border:1.5px solid var(--g200);border-radius:12px;padding:28px;text-align:center;color:var(--g400);font-size:13px">No loads assigned yet.<br>Your manager will assign you a shipment.</div>`:''}
+      ${myLoads.length===0?`<div style="background:#fff;border:1.5px solid var(--g200);border-radius:12px;padding:28px;text-align:center;color:var(--g400);font-size:13px">No loads assigned yet. Your manager will assign you a shipment.</div>`:''}
       ${myLoads.sort((a,b)=>b.createdAt-a.createdAt).map(l=>`
       <div style="background:#fff;border:1.5px solid ${l.status==='in_progress'?'var(--amber)':l.status==='delivered'?'var(--green)':l.status==='assigned'?'#333':'var(--g200)'};border-radius:12px;padding:16px;margin-bottom:8px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
