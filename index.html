@@ -4,6 +4,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Baltic Global — Fleet Command</title>
+
+<!-- PWA Meta Tags -->
+<meta name="application-name" content="Baltic Global Fleet">
+<meta name="description" content="Baltic Global Fleet Command — Driver & Manager App">
+<meta name="theme-color" content="#111111">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BG Fleet">
+<meta name="msapplication-TileColor" content="#111111">
+<meta name="msapplication-tap-highlight" content="no">const CACHE = 'bgfleet-v1';
+const ASSETS = ['/fleet/', '/fleet/index.html', '/fleet/manifest.json'];
+
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    fetch(e.request).then(r => {
+      const clone = r.clone();
+      caches.open(CACHE).then(c => c.put(e.request, clone)).catch(() => {});
+      return r;
+    }).catch(() => caches.match(e.request))
+  );
+});
+
+
+<!-- PWA Icons (using logo as icon) -->
+<link rel="apple-touch-icon" href="icon-192.svg">
+<link rel="icon" type="image/svg+xml" href="icon-192.svg">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" onerror="this.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'"/>
 <script>(function(){function ls(s,f){var el=document.createElement('script');el.src=s;el.onerror=function(){if(f){var fe=document.createElement('script');fe.src=f;document.head.appendChild(fe);}};document.head.appendChild(el);}ls('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js','https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js');})();</script>
@@ -1377,6 +1420,84 @@ ${drivers.map((d,i)=>{const bad=d.docs.filter(x=>x.status==='exp'||x.status==='m
 
 // ════ TOAST ════
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',3000);}
+
+// ════ PWA INSTALL PROMPT ════
+let pwaInstallEvent = null;
+
+// Catch the install prompt (Android/Desktop Chrome)
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  pwaInstallEvent = e;
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  if (document.getElementById('pwa-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'pwa-banner';
+  banner.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:600;z-index:9000;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.3);white-space:nowrap;';
+  banner.innerHTML = `
+    <span>📱 Install BG Fleet App</span>
+    <button onclick="installPWA()" style="padding:7px 14px;background:#fff;color:#111;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">Install</button>
+    <button onclick="document.getElementById('pwa-banner').remove()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;padding:0 4px;">✕</button>
+  `;
+  document.body.appendChild(banner);
+  setTimeout(() => banner?.remove(), 15000);
+}
+
+function installPWA() {
+  if (pwaInstallEvent) {
+    pwaInstallEvent.prompt();
+    pwaInstallEvent.userChoice.then(result => {
+      if (result.outcome === 'accepted') showToast('App installed! Find it on your home screen.');
+      pwaInstallEvent = null;
+      document.getElementById('pwa-banner')?.remove();
+    });
+  }
+}
+
+// ── iOS Install Instructions ──
+// iOS Safari doesn't support beforeinstallprompt — show manual instructions
+function showIOSInstallHint() {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isInStandalone = window.navigator.standalone;
+  if (isIOS && !isInStandalone) {
+    setTimeout(() => {
+      if (document.getElementById('pwa-banner') || document.getElementById('ios-hint')) return;
+      const hint = document.createElement('div');
+      hint.id = 'ios-hint';
+      hint.style.cssText = 'position:fixed;bottom:70px;left:12px;right:12px;background:#111;color:#fff;padding:14px 16px;border-radius:14px;font-size:13px;z-index:9000;box-shadow:0 4px 20px rgba(0,0,0,.3);';
+      hint.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-weight:700;font-size:14px;">📱 Install BG Fleet on iPhone</div>
+          <button onclick="document.getElementById('ios-hint').remove()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;">✕</button>
+        </div>
+        <div style="line-height:1.7;color:rgba(255,255,255,.85);">
+          1. Tap the <b style="color:#fff">Share</b> button <span style="font-size:16px">⎋</span> at the bottom of Safari<br>
+          2. Scroll down and tap <b style="color:#fff">"Add to Home Screen"</b><br>
+          3. Tap <b style="color:#fff">"Add"</b> — done! 🎉
+        </div>
+      `;
+      document.body.appendChild(hint);
+      setTimeout(() => hint?.remove(), 20000);
+    }, 3000);
+  }
+}
+
+// Register Service Worker for offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Use a real SW file path — only works if sw.js exists in repo
+    navigator.serviceWorker.register('/fleet/sw.js', {scope: '/fleet/'})
+      .then(() => console.log('[BG] Service worker registered'))
+      .catch(() => {}); // silently fail if sw.js not uploaded yet
+  });
+}
+
+// Show iOS install hint after login
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(showIOSInstallHint, 5000);
+});
 
 </script>
 </body>
