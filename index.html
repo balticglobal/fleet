@@ -645,6 +645,127 @@ function fbListenMsgs(dId){
   chatListeners[dId]=true;
 }
 
+// ── Driver load listener — real-time notifications when loads are assigned ──
+let driverLoadListener = false;
+let knownLoadIds = new Set(); // track loads driver already knows about
+
+function fbListenDriverLoads(dId){
+  if(!fbMode || driverLoadListener) return;
+  driverLoadListener = true;
+
+  window._fb.onValue(window._fb.ref(window._fb.db,'fleet/loads'), snap => {
+    const data = snap.val() || {};
+    let hasNew = false;
+    let newLoad = null;
+
+    Object.entries(data).forEach(([id, l]) => {
+      const isMyLoad = String(l.driverId) === String(dId);
+      const isNewToMe = !knownLoadIds.has(id);
+
+      // Add to local loads array
+      const idx = loads.findIndex(x => x.id === id);
+      if(idx === -1) loads.push({...l, id});
+      else loads[idx] = {...l, id};
+
+      // Detect newly assigned load
+      if(isMyLoad && isNewToMe && (l.status === 'assigned' || l.status === 'in_progress')){
+        hasNew = true;
+        newLoad = {...l, id};
+        knownLoadIds.add(id);
+      } else {
+        knownLoadIds.add(id);
+      }
+    });
+
+    if(hasNew && newLoad){
+      // Push notification
+      sendDriverNotification(
+        '📦 New Load Assigned!',
+        `${newLoad.origin?.split(',')[0] || '—'} → ${newLoad.dest?.split(',')[0] || '—'} | ${fmtM(newLoad.rate)}`
+      );
+      // In-app alert banner
+      showLoadAlert(newLoad);
+    }
+
+    // Re-render driver dashboard if visible
+    if(currentUser?.role === 'driver') {
+      setTimeout(renderDrvDash, 100);
+    }
+  });
+}
+
+// ── Push notification (browser) ──
+let notifGranted = false;
+
+function requestDriverNotifPermission(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'granted'){ notifGranted = true; return; }
+  if(Notification.permission !== 'denied'){
+    Notification.requestPermission().then(p => {
+      notifGranted = p === 'granted';
+    });
+  }
+}
+
+function sendDriverNotification(title, body){
+  // Browser push notification (if tab is in background)
+  if(notifGranted && Notification.permission === 'granted'){
+    try {
+      new Notification(title, {
+        body,
+        icon: '/fleet/icon-192.svg',
+        badge: '/fleet/icon-192.svg',
+        tag: 'load-assigned',
+        renotify: true
+      });
+    } catch(e) {}
+  }
+}
+
+// ── In-app alert banner for driver ──
+function showLoadAlert(load){
+  const existing = document.getElementById('load-alert-banner');
+  if(existing) existing.remove();
+
+  const banner = document.createElement('div');
+  banner.id = 'load-alert-banner';
+  banner.style.cssText = `
+    position:fixed;top:0;left:0;right:0;z-index:9500;
+    background:linear-gradient(135deg,#111 0%,#222 100%);
+    color:#fff;padding:16px 18px;
+    box-shadow:0 4px 24px rgba(0,0,0,.3);
+    animation:slideDown .3s ease;
+  `;
+  banner.innerHTML = `
+    <style>@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}</style>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:28px">📦</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;margin-bottom:2px">New Load Assigned!</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.8)">${load.origin?.split(',')[0]||'—'} → ${load.dest?.split(',')[0]||'—'}</div>
+        <div style="font-size:12px;color:#4ade80;font-weight:700;margin-top:2px">${fmtM(load.rate)} · ${load.cargo}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <button onclick="document.getElementById('load-alert-banner').remove();drvScroll('drv-loads')"
+          style="padding:8px 14px;background:#fff;color:#111;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+          View Load →
+        </button>
+        <button onclick="document.getElementById('load-alert-banner').remove()"
+          style="background:none;border:none;color:rgba(255,255,255,.5);font-size:11px;cursor:pointer">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(banner);
+
+  // Vibrate on mobile
+  if('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+
+  // Auto dismiss after 12 seconds
+  setTimeout(() => banner?.remove(), 12000);
+}
+
 // ════ LOGIN ════
 let lgMode='manager';
 function lgTab(t){
@@ -724,6 +845,11 @@ function doLogin(user){
     document.getElementById('tb-pdf-btn').style.display='none';
     setView('driver-dash');
     fbListenMsgs(user.id);
+    // Start load listener for real-time notifications
+    setTimeout(()=>{
+      requestDriverNotifPermission();
+      fbListenDriverLoads(user.id);
+    }, 1000);
   }
 }
 
