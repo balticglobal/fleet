@@ -158,9 +158,9 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;}
 .lcard.in_progress{border-left:4px solid var(--amber);}
 .lcard.delivered{border-left:4px solid var(--green);}
 .lcard.cancelled{border-left:4px solid var(--red);opacity:.6;}
-.lchdr{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.lchdr{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 .lid{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--g400);}
-.lroute{font-size:14px;font-weight:700;color:var(--g900);flex:1;}
+.lroute{font-size:14px;font-weight:700;color:var(--g900);flex:1;min-width:160px;}
 .larr{color:#555;margin:0 5px;}
 .lstatus{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px;}
 .lstatus.new{background:var(--g100);color:var(--g500);}
@@ -172,7 +172,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;}
 .lmi-lbl{font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.3px;}
 .lmi-val{font-size:12px;font-weight:600;color:var(--g700);margin-top:1px;}
 .lmi-val.rate{color:var(--green);}
-.lactions{position:absolute;top:14px;right:14px;display:flex;gap:5px;}
+.lactions{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;margin-left:auto;}
 .lacbtn{padding:4px 9px;border:1.5px solid var(--g200);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:#fff;transition:all .18s;}
 .lacbtn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-10);}
 .lacbtn.danger:hover{border-color:var(--red);color:var(--red);background:var(--rbg);}
@@ -897,16 +897,16 @@ function renderLoads(){
   body.innerHTML=filtered.sort((a,b)=>b.createdAt-a.createdAt).map(l=>{
     const drv=l.driverId?drivers.find(x=>x.id===l.driverId):null;
     return `<div class="lcard ${l.status}" onclick="openPanel(${l.driverId||0})">
+      <div class="lchdr">
+        <div class="lid">${l.id}</div>
+        <div class="lroute">${l.origin.split(',')[0]}<span class="larr">→</span>${l.dest.split(',')[0]}</div>
+        <div class="lstatus ${l.status}">${l.status.replace('_',' ')}</div>
+      </div>
       <div class="lactions" onclick="event.stopPropagation()">
         ${l.status!=='delivered'&&l.status!=='cancelled'?`<button class="lacbtn" onclick="openAssign('${l.id}','load')">Assign</button>`:''}
         ${l.status==='assigned'?`<button class="lacbtn" onclick="updLoad('${l.id}','in_progress')">▶ Start</button>`:''}
         ${l.status==='in_progress'?`<button class="lacbtn" onclick="updLoad('${l.id}','delivered')">✓ Done</button>`:''}
         ${l.status!=='delivered'&&l.status!=='cancelled'?`<button class="lacbtn danger" onclick="updLoad('${l.id}','cancelled')">Cancel</button>`:''}
-      </div>
-      <div class="lchdr">
-        <div class="lid">${l.id}</div>
-        <div class="lroute">${l.origin.split(',')[0]}<span class="larr">→</span>${l.dest.split(',')[0]}</div>
-        <div class="lstatus ${l.status}">${l.status.replace('_',' ')}</div>
       </div>
       <div class="lmeta">
         <div><div class="lmi-lbl">Cargo</div><div class="lmi-val">${l.cargo}</div></div>
