@@ -546,6 +546,14 @@ function fbListenLoads(){
     Object.entries(data).forEach(([id,l])=>{
       const idx=loads.findIndex(x=>x.id===id);
       if(idx===-1)loads.push({...l,id});else loads[idx]={...l,id};
+      // Load docs from Firebase into local loadDocs
+      if(l.docs){
+        if(!loadDocs[id]) loadDocs[id]={};
+        Object.entries(l.docs).forEach(([stage,keys])=>{
+          if(!loadDocs[id][stage]) loadDocs[id][stage]={};
+          Object.entries(keys).forEach(([k,v])=>{ loadDocs[id][stage][k]=v; });
+        });
+      }
     });
     renderLoads();updateRouteBadge();updateMapStats();
   });
@@ -1156,6 +1164,7 @@ function renderPLoads(body){
       <div class="tmeta"><span>${l.id}</span><span>${l.cargo}</span><span style="color:var(--green);font-weight:700">${fmtM(l.rate)}</span><span>${l.miles}</span></div>
       <div class="tmeta" style="margin-top:3px"><span>Pickup: ${l.pickupDate||'—'}</span><span>Delivery: ${l.deliveryDate||'—'}</span></div>
       ${l.notes?`<div style="margin-top:5px;font-size:11px;color:var(--g500)">${l.notes}</div>`:''}
+      ${buildMgrLoadDocs(l.id)}
       ${l.status==='assigned'?`<div style="margin-top:8px;display:flex;gap:6px"><button class="lacbtn" onclick="updLoad('${l.id}','in_progress');setPTab('loads')">▶ Start</button><button class="lacbtn danger" onclick="updLoad('${l.id}','cancelled');setPTab('loads')">Cancel</button></div>`:''}
       ${l.status==='in_progress'?`<div style="margin-top:8px"><button class="lacbtn" style="background:var(--gbg);color:var(--green);border-color:var(--gbd)" onclick="updLoad('${l.id}','delivered');setPTab('loads')">✓ Mark Delivered</button></div>`:''}
     </div>`).join('')}`;
@@ -1271,25 +1280,63 @@ function renderDrvDash(){
       <div style="font-size:15px;font-weight:700;color:var(--g900);margin-bottom:10px">My Loads <span style="font-size:12px;color:var(--g400);font-weight:500">(${myLoads.length})</span></div>
       ${myLoads.length===0?`<div style="background:#fff;border:1.5px solid var(--g200);border-radius:12px;padding:28px;text-align:center;color:var(--g400);font-size:13px">No loads assigned yet. Your manager will assign you a shipment.</div>`:''}
       ${myLoads.sort((a,b)=>b.createdAt-a.createdAt).map(l=>`
-      <div style="background:#fff;border:1.5px solid ${l.status==='in_progress'?'var(--amber)':l.status==='delivered'?'var(--green)':l.status==='assigned'?'#333':'var(--g200)'};border-radius:12px;padding:16px;margin-bottom:8px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:15px;font-weight:700;color:var(--g900)">${l.origin.split(',')[0]} → ${l.dest.split(',')[0]}</div>
-          <span class="lstatus ${l.status}">${l.status.replace('_',' ')}</span>
+      <div style="background:#fff;border:1.5px solid ${l.status==='in_progress'?'var(--amber)':l.status==='delivered'?'var(--green)':l.status==='assigned'?'#333':'var(--g200)'};border-radius:12px;overflow:hidden;margin-bottom:12px">
+
+        <!-- Load Header -->
+        <div style="padding:14px 16px;border-bottom:1px solid var(--g100)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:15px;font-weight:700;color:var(--g900)">${l.origin.split(',')[0]} → ${l.dest.split(',')[0]}</div>
+            <span class="lstatus ${l.status}">${l.status.replace('_',' ')}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+            <div><div class="lmi-lbl">Cargo</div><div style="font-weight:600">${l.cargo}</div></div>
+            <div><div class="lmi-lbl">Pay</div><div style="font-weight:700;color:var(--green)">${fmtM(l.rate)}</div></div>
+            <div><div class="lmi-lbl">Pickup Date</div><div style="font-weight:600">${l.pickupDate||'—'}</div></div>
+            <div><div class="lmi-lbl">Delivery Date</div><div style="font-weight:600">${l.deliveryDate||'—'}</div></div>
+          </div>
+          ${l.notes?`<div style="margin-top:8px;padding:7px 9px;background:var(--g50);border-radius:7px;font-size:12px;color:#475569">${l.notes}</div>`:''}
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:12px">
-          <div><div class="lmi-lbl">Cargo</div><div style="font-weight:600">${l.cargo}</div></div>
-          <div><div class="lmi-lbl">Pay</div><div style="font-weight:700;color:var(--green)">${fmtM(l.rate)}</div></div>
-          <div><div class="lmi-lbl">Miles</div><div style="font-weight:600">${l.miles}</div></div>
-          <div><div class="lmi-lbl">Load ID</div><div style="font-family:var(--mono);font-size:11px">${l.id}</div></div>
-          <div><div class="lmi-lbl">Pickup</div><div style="font-weight:600">${l.pickupDate||'—'}</div></div>
-          <div><div class="lmi-lbl">Delivery</div><div style="font-weight:600">${l.deliveryDate||'—'}</div></div>
+
+        <!-- STEP 1 — START TRIP -->
+        ${l.status==='assigned'?`
+        <div style="padding:14px 16px;background:var(--g50);border-bottom:1px solid var(--g100)">
+          <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Step 1 — Ready to Pick Up?</div>
+          <button class="bprimary" style="width:100%;padding:11px" onclick="drvUpdLoad('${l.id}','in_progress')">🚛 Start Trip — At Shipper</button>
+        </div>`:''}
+
+        <!-- STEP 2 — AT PICKUP: upload BOL + photos before delivery -->
+        ${l.status==='in_progress'?`
+        <div style="padding:14px 16px;border-bottom:1px solid var(--g100)">
+          <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">📦 Pickup Documents</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${buildDocSlot(l.id,'pickup','bol','Bill of Lading (BOL)')}
+            ${buildDocSlot(l.id,'pickup','photo1','Loaded Photo 1')}
+            ${buildDocSlot(l.id,'pickup','photo2','Loaded Photo 2')}
+          </div>
         </div>
-        ${l.notes?`<div style="padding:8px;background:var(--g50);border-radius:7px;font-size:12px;color:var(--g600,#475569);margin-bottom:10px">${l.notes}</div>`:''}
-        <div style="display:flex;gap:8px">
-          ${l.status==='assigned'?`<button class="bprimary" style="flex:1;padding:10px" onclick="drvUpdLoad('${l.id}','in_progress')">🚛 Start Trip</button>`:''}
-          ${l.status==='in_progress'?`<button class="bprimary" style="flex:1;padding:10px;background:var(--green)" onclick="drvUpdLoad('${l.id}','delivered')">✓ Mark Delivered</button>`:''}
-          ${l.status==='delivered'?`<div style="padding:10px;background:var(--gbg);color:var(--green);border-radius:8px;font-size:13px;font-weight:600;text-align:center;flex:1">✓ Delivered</div>`:''}
-        </div>
+        <div style="padding:14px 16px;background:var(--g50)">
+          <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Step 3 — At Delivery Location?</div>
+          <div style="font-size:12px;color:var(--g400);margin-bottom:10px">Upload BOL and photos first, then mark as delivered.</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+            ${buildDocSlot(l.id,'delivery','pod','Proof of Delivery (POD)')}
+            ${buildDocSlot(l.id,'delivery','bol_signed','Signed BOL')}
+            ${buildDocSlot(l.id,'delivery','photo1','Unloaded Photo 1')}
+            ${buildDocSlot(l.id,'delivery','photo2','Unloaded Photo 2')}
+          </div>
+          <button class="bprimary" style="width:100%;padding:11px;background:var(--green)" onclick="drvMarkDelivered('${l.id}')">✓ Mark as Delivered</button>
+        </div>`:''}
+
+        <!-- DELIVERED summary -->
+        ${l.status==='delivered'?`
+        <div style="padding:14px 16px;background:var(--gbg)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">✓</div>
+            <div style="font-size:14px;font-weight:700;color:var(--green)">Delivered Successfully</div>
+          </div>
+          <div style="font-size:12px;color:var(--g500)">All documents submitted. Load ID: ${l.id}</div>
+          ${getLoadDocs(l.id)?`<div style="margin-top:8px;font-size:11px;color:var(--green)">📎 ${getLoadDocs(l.id)} document(s) uploaded</div>`:''}
+        </div>`:''}
+
       </div>`).join('')}
     </div>
 
@@ -1331,7 +1378,112 @@ function renderDrvDash(){
   const ce=document.getElementById('drv-msgs-'+d.id);if(ce)ce.scrollTop=ce.scrollHeight;
 }
 
-function drvUpdLoad(id,status){updLoad(id,status);setTimeout(renderDrvDash,150);}
+function buildMgrLoadDocs(loadId){
+  const ld = loadDocs[loadId]||{};
+  const pickupDocs = ld.pickup||{};
+  const delivDocs  = ld.delivery||{};
+  const allDocs = [
+    ...Object.entries(pickupDocs).map(([k,v])=>({...v,stage:'Pickup',key:k,label:{bol:'Bill of Lading',photo1:'Load Photo 1',photo2:'Load Photo 2'}[k]||k})),
+    ...Object.entries(delivDocs).map(([k,v])=>({...v,stage:'Delivery',key:k,label:{pod:'Proof of Delivery',bol_signed:'Signed BOL',photo1:'Unload Photo 1',photo2:'Unload Photo 2'}[k]||k}))
+  ];
+  if(!allDocs.length) return '';
+  return `<div style="margin-top:10px;padding:10px;background:var(--g50);border-radius:8px;border:1px solid var(--g200)">
+    <div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">📎 Shipment Documents (${allDocs.length})</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${allDocs.map(doc=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:#fff;border:1px solid var(--g200);border-radius:7px">
+        <div style="font-size:13px">${doc.dataUrl?.startsWith('data:image')?'🖼':'📄'}</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;color:var(--g900)">${doc.label}</div>
+          <div style="font-size:10px;color:var(--g400)">${doc.stage} · ${doc.file}</div>
+        </div>
+        ${doc.dataUrl?`<a href="${doc.dataUrl}" download="${doc.file}" style="padding:4px 10px;background:#111;color:#fff;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">↓ Download</a>`:''}
+        ${doc.dataUrl?.startsWith('data:image')?`<img src="${doc.dataUrl}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="openImgPreview('${doc.dataUrl}','${doc.file}')">`:''}
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function openImgPreview(dataUrl, filename){
+  const m=document.createElement('div');
+  m.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;';
+  m.innerHTML=`<div style="position:absolute;top:16px;right:16px;display:flex;gap:8px">
+    <a href="${dataUrl}" download="${filename}" style="padding:8px 16px;background:#333;color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none">↓ Download</a>
+    <button onclick="this.closest('div[style*=fixed]').remove()" style="padding:8px 16px;background:#111;color:#fff;border:1px solid #333;border-radius:8px;font-size:12px;cursor:pointer">✕ Close</button>
+  </div>
+  <div style="color:#aaa;font-size:12px;margin-bottom:12px;margin-top:48px">${filename}</div>
+  <img src="${dataUrl}" style="max-width:90vw;max-height:80vh;object-fit:contain;border-radius:8px">`;
+  m.addEventListener('click',e=>{if(e.target===m)m.remove();});
+  document.body.appendChild(m);
+}
+
+// Load document storage: loadDocs[loadId][stage][key] = {file, dataUrl, ts}
+let loadDocs = {};
+
+function getLoadDocs(loadId){
+  const ld = loadDocs[loadId]||{};
+  let count = 0;
+  ['pickup','delivery'].forEach(stage=>{ if(ld[stage]) count+=Object.keys(ld[stage]).length; });
+  return count;
+}
+
+function buildDocSlot(loadId, stage, key, label){
+  const doc = (loadDocs[loadId]||{})[stage]?.[key];
+  const uploaded = !!doc;
+  const slotId = `lds-${loadId}-${stage}-${key}`;
+  if(uploaded){
+    return `<div id="${slotId}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--gbg);border:1.5px solid var(--gbd);border-radius:8px">
+      <div style="width:28px;height:28px;border-radius:6px;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex-shrink:0">✓</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--g900)">${label}</div><div style="font-size:11px;color:var(--g500)">${doc.file}</div></div>
+      ${doc.dataUrl?`<a href="${doc.dataUrl}" download="${doc.file}" style="font-size:11px;color:var(--blue,#2563eb);text-decoration:none;font-weight:600;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px">↓</a>`:''}
+      <button onclick="drvUploadLoadDoc('${loadId}','${stage}','${key}','${label}')" style="font-size:11px;color:var(--g400);border:1px solid var(--g200);background:#fff;padding:4px 8px;border-radius:6px;cursor:pointer">Replace</button>
+    </div>`;
+  }
+  return `<div id="${slotId}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1.5px dashed var(--g300);border-radius:8px">
+    <div style="width:28px;height:28px;border-radius:6px;background:var(--g100);display:flex;align-items:center;justify-content:center;color:var(--g400);font-size:13px;flex-shrink:0">📎</div>
+    <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--g700)">${label}</div><div style="font-size:11px;color:var(--g400)">Not uploaded</div></div>
+    <button onclick="drvUploadLoadDoc('${loadId}','${stage}','${key}','${label}')" style="padding:7px 14px;background:#111;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">Upload</button>
+  </div>`;
+}
+
+function drvUploadLoadDoc(loadId, stage, key, label){
+  const inp = document.getElementById('file-inp');
+  inp.onchange = e => {
+    const f = e.target.files[0]; if(!f) return;
+    if(f.size > 8*1024*1024){ showToast('File too large — max 8MB'); inp.value=''; return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const dataUrl = ev.target.result;
+      if(!loadDocs[loadId]) loadDocs[loadId] = {};
+      if(!loadDocs[loadId][stage]) loadDocs[loadId][stage] = {};
+      loadDocs[loadId][stage][key] = { file:f.name, dataUrl, ts:Date.now() };
+      // Push to Firebase under fleet/loads/{loadId}/docs/{stage}/{key}
+      fbUpd('fleet/loads/'+loadId+'/docs/'+stage+'/'+key, { file:f.name, dataUrl, ts:Date.now() });
+      // Also notify manager via chat if driver has id
+      const dId = currentUser?.id;
+      if(dId){
+        const msg={id:'m_'+Date.now(),from:'driver',fromName:currentUser?.name||'Driver',text:`📎 Uploaded ${label} for load ${loadId} (${stage})`,ts:Date.now(),read:false};
+        addMsg(dId,msg); fbSet('fleet/messages/'+dId+'/'+msg.id,msg);
+      }
+      showToast('✓ '+label+' uploaded');
+      inp.value='';
+      renderDrvDash();
+    };
+    reader.readAsDataURL(f);
+  };
+  inp.click();
+}
+
+function drvMarkDelivered(loadId){
+  // Check required delivery docs
+  const ld = loadDocs[loadId]||{};
+  const hasPOD = !!(ld.delivery?.pod || ld.delivery?.bol_signed);
+  if(!hasPOD){
+    if(!confirm('You haven\'t uploaded a Proof of Delivery or Signed BOL yet.\n\nMark as delivered anyway?')) return;
+  }
+  drvUpdLoad(loadId, 'delivered');
+  showToast('✓ Load marked as delivered!');
+}
 
 function sendDrvMsg(dId){
   const inp=document.getElementById('drv-inp-'+dId);const text=inp?.value.trim();if(!text)return;inp.value='';
