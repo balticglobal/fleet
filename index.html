@@ -799,6 +799,88 @@ function setMapFilter(f){
 
 function getDriverLoad(dId){return loads.find(l=>l.driverId===dId&&(l.status==='assigned'||l.status==='in_progress'));}
 
+// ── Route Lines (OSRM real road routing) ──
+let routeLines={}, routeCache={}, routeDestMarkers={};
+
+function clearRouteLines(){
+  Object.values(routeLines).forEach(l=>l.remove()); routeLines={};
+  Object.values(routeDestMarkers).forEach(m=>m.remove()); routeDestMarkers={};
+}
+
+async function geocodeCity(cityStr){
+  try{
+    const q=encodeURIComponent(cityStr.trim());
+    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+q+'&countrycodes=us&limit=1');
+    const data=await r.json();
+    if(data&&data[0])return{lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon)};
+  }catch(e){}
+  return null;
+}
+
+async function fetchRoadRoute(fromLat,fromLng,toLat,toLng){
+  const key=`${fromLat.toFixed(2)},${fromLng.toFixed(2)}-${toLat.toFixed(2)},${toLng.toFixed(2)}`;
+  if(routeCache[key])return routeCache[key];
+  try{
+    const url=`https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+    const r=await fetch(url);
+    const data=await r.json();
+    if(data.routes&&data.routes[0]){
+      const coords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+      const dist=(data.routes[0].distance/1609.34).toFixed(0)+' mi';
+      const dur=Math.round(data.routes[0].duration/60);
+      const eta=dur>60?Math.floor(dur/60)+'h '+(dur%60)+'m':dur+'m';
+      const result={coords,dist,eta};
+      routeCache[key]=result;
+      return result;
+    }
+  }catch(e){}
+  return{coords:[[fromLat,fromLng],[toLat,toLng]],dist:'—',eta:'—'};
+}
+
+async function drawDriverRoute(d,load){
+  if(!leafletMap||!d.lat||!d.lng)return;
+  if(routeLines[d.id]){routeLines[d.id].remove();delete routeLines[d.id];}
+  if(routeDestMarkers[d.id]){routeDestMarkers[d.id].remove();delete routeDestMarkers[d.id];}
+  const destCoord=await geocodeCity(load.dest);
+  if(!destCoord)return;
+  const route=await fetchRoadRoute(d.lat,d.lng,destCoord.lat,destCoord.lng);
+  const color=load.status==='in_progress'?'#16a34a':'#2563eb';
+  const line=L.polyline(route.coords,{color,weight:4,opacity:.75,dashArray:load.status==='assigned'?'8,6':null}).addTo(leafletMap);
+  routeLines[d.id]=line;
+  const destIcon=L.divIcon({className:'truck-marker',html:`<div style="background:${color};color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.2)">📍</div>`,iconSize:[28,28],iconAnchor:[14,14]});
+  const dm=L.marker([destCoord.lat,destCoord.lng],{icon:destIcon}).addTo(leafletMap);
+  dm.bindPopup(`<div class="popup-name">📦 Destination</div>
+    <div class="popup-row">${load.dest.split(',')[0]}</div>
+    <div class="popup-row">Driver: <span>${d.name}</span></div>
+    <div class="popup-row">Distance: <span>${route.dist}</span></div>
+    <div class="popup-row">ETA: <span style="font-weight:700;color:${color}">${route.eta}</span></div>
+    <div class="popup-row">Cargo: <span>${load.cargo}</span></div>
+    <div class="popup-row">Rate: <span style="color:#16a34a;font-weight:700">${fmtM(load.rate)}</span></div>`,{maxWidth:220});
+  routeDestMarkers[d.id]=dm;
+  // Update driver marker popup with ETA
+  if(leafletMarkers[d.id]){
+    leafletMarkers[d.id].setPopupContent(`<div class="popup-name">${d.name}</div>
+      <div class="popup-row">Vehicle: <span>${d.vehicle}</span></div>
+      <div class="popup-row">Status: <span style="color:${color}">${load.status==='in_progress'?'🟢 In Progress':'🔵 Assigned'}</span></div>
+      <div class="popup-row">Speed: <span>${d.speed}</span></div>
+      <div class="popup-row">ETA to dest: <span style="font-weight:700">${route.eta}</span></div>
+      <div class="popup-row">Distance left: <span>${route.dist}</span></div>
+      <div class="popup-load">📦 ${load.origin.split(',')[0]} → ${load.dest.split(',')[0]}<br>${fmtM(load.rate)} · ${load.cargo}</div>
+      <div style="margin-top:9px"><button onclick="openPanel(${d.id})" style="width:100%;padding:7px;background:#111;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">View Driver →</button></div>`);
+  }
+}
+
+async function refreshRoutes(){
+  Object.keys(routeLines).forEach(dId=>{
+    const d=drivers.find(x=>x.id===parseInt(dId));
+    if(!d||!getDriverLoad(d.id)){routeLines[dId]?.remove();delete routeLines[dId];routeDestMarkers[dId]?.remove();delete routeDestMarkers[dId];}
+  });
+  for(const d of drivers){
+    const al=getDriverLoad(d.id);
+    if(al&&d.lat&&d.lng)await drawDriverRoute(d,al);
+  }
+}
+
 function renderMarkers(){
   if(!leafletMap)return;
   Object.values(leafletMarkers).forEach(m=>m.remove());leafletMarkers={};
@@ -815,13 +897,14 @@ function renderMarkers(){
     const m=L.marker([d.lat,d.lng],{icon}).addTo(leafletMap);
     m.bindPopup(`<div class="popup-name">${d.name}</div>
       <div class="popup-row">Vehicle: <span>${d.vehicle}</span></div>
-      <div class="popup-row">Status: <span style="color:${cls==='has-load'?'var(--green)':cls==='active'?'var(--blue)':cls==='idle'?'var(--amber)':'var(--g400)'}">${cls==='has-load'?'On Load':d.status}</span></div>
+      <div class="popup-row">Status: <span style="color:${cls==='has-load'?'#16a34a':cls==='active'?'#2563eb':cls==='idle'?'#d97706':'#94a3b8'}">${cls==='has-load'?'On Load':d.status}</span></div>
       <div class="popup-row">Speed: <span>${d.speed}</span></div>
       <div class="popup-row">City: <span>${d.city.split(',')[0]}</span></div>
       ${al?`<div class="popup-load">📦 ${al.origin.split(',')[0]} → ${al.dest.split(',')[0]}<br>${fmtM(al.rate)} · ${al.miles||'—'}</div>`:''}
       <div style="margin-top:9px"><button onclick="openPanel(${d.id})" style="width:100%;padding:7px;background:#111;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">View Driver →</button></div>`,{maxWidth:240});
     leafletMarkers[d.id]=m;
   });
+  setTimeout(()=>refreshRoutes(),200);
 }
 
 function updateMapStats(){
@@ -1292,6 +1375,9 @@ function startDrvGPS(dId){
           const loc2={lat:lat2,lng:lng2,speed:d2?.speed||'0 mph',city:d2?.city||'—',name:d2?.name||'Driver',vehicle:d2?.vehicle||'—',plate:d2?.plate||'—',ts:Date.now()};
           fbUpd('fleet/drivers/'+dId+'/location', loc2);
           fbUpd('fleet/registered_drivers/'+dId, {lat:lat2,lng:lng2,status:'active',speed:d2?.speed||'0 mph'});
+          // Refresh route line with new position
+          const al2=getDriverLoad(dId);
+          if(al2&&leafletMap) drawDriverRoute(d2||{id:dId,lat:lat2,lng:lng2,name:currentUser?.name,vehicle:currentUser?.vehicle,speed:d2?.speed},al2);
           // Reverse geocode
           fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat2+'&lon='+lng2+'&zoom=10')
             .then(r=>r.json()).then(data=>{
