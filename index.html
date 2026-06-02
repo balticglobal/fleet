@@ -539,6 +539,32 @@ document.addEventListener('fbReady',e=>{fbMode=window._fb?.ready||false;});
 function fbSet(p,d){if(!fbMode)return;window._fb.set(window._fb.ref(window._fb.db,p),d).catch(e=>console.warn(e));}
 function fbUpd(p,d){if(!fbMode)return;window._fb.update(window._fb.ref(window._fb.db,p),d).catch(e=>console.warn(e));}
 
+// Load document storage: loadDocs[loadId][stage][key] = {file, dataUrl, ts}
+let loadDocs = {};
+let loadDocListeners = {}; // track which loads we're already watching
+
+function fbListenLoadDocs(loadId){
+  if(!fbMode || loadDocListeners[loadId]) return;
+  loadDocListeners[loadId] = true;
+  window._fb.onValue(window._fb.ref(window._fb.db,'fleet/loads/'+loadId+'/docs'), snap => {
+    const data = snap.val();
+    if(!data) return;
+    if(!loadDocs[loadId]) loadDocs[loadId] = {};
+    Object.entries(data).forEach(([stage, keys]) => {
+      if(!loadDocs[loadId][stage]) loadDocs[loadId][stage] = {};
+      Object.entries(keys).forEach(([k, v]) => {
+        loadDocs[loadId][stage][k] = v;
+      });
+    });
+    // Refresh panel if manager is viewing this driver's loads
+    if(currentUser?.role === 'manager' && curPTab === 'loads') {
+      renderPLoads(document.getElementById('dp-body'));
+    }
+    // Also re-render shipments list
+    if(document.getElementById('view-loads').classList.contains('active')) renderLoads();
+  });
+}
+
 function fbListenLoads(){
   if(!fbMode)return;
   window._fb.onValue(window._fb.ref(window._fb.db,'fleet/loads'),snap=>{
@@ -546,16 +572,24 @@ function fbListenLoads(){
     Object.entries(data).forEach(([id,l])=>{
       const idx=loads.findIndex(x=>x.id===id);
       if(idx===-1)loads.push({...l,id});else loads[idx]={...l,id};
-      // Load docs from Firebase into local loadDocs
+      // Sync docs from snapshot
       if(l.docs){
         if(!loadDocs[id]) loadDocs[id]={};
         Object.entries(l.docs).forEach(([stage,keys])=>{
           if(!loadDocs[id][stage]) loadDocs[id][stage]={};
-          Object.entries(keys).forEach(([k,v])=>{ loadDocs[id][stage][k]=v; });
+          if(keys && typeof keys === 'object') {
+            Object.entries(keys).forEach(([k,v])=>{ loadDocs[id][stage][k]=v; });
+          }
         });
       }
+      // Start dedicated docs listener for each load
+      fbListenLoadDocs(id);
     });
     renderLoads();updateRouteBadge();updateMapStats();
+    // Refresh panel if viewing loads
+    if(currentUser?.role==='manager'&&curPTab==='loads'&&selDriver){
+      renderPLoads(document.getElementById('dp-body'));
+    }
   });
 }
 
@@ -569,7 +603,6 @@ function fbListenDrivers(){
       const numId=parseInt(id)||id;
       const existing=drivers.find(x=>String(x.id)===String(id)||x.email===d.email);
       if(!existing){
-        // Add new driver to local array
         const newDrv={
           id:numId, name:d.name||'Driver', init:mkInit(d.name||'D'),
           email:d.email||'', password:d.password||'',
@@ -587,8 +620,26 @@ function fbListenDrivers(){
           trips:[]
         };
         drivers.push(newDrv);
-        // Also start listening for their messages
         if(currentUser?.role==='manager') fbListenMsgs(numId);
+      } else {
+        // Update existing driver location from registered_drivers if GPS pushed here
+        if(d.lat && d.lng){
+          const moved = existing.lat !== d.lat || existing.lng !== d.lng;
+          existing.lat = d.lat; existing.lng = d.lng;
+          if(d.status) existing.status = d.status;
+          if(d.speed)  existing.speed  = d.speed;
+          if(d.city)   existing.city   = d.city;
+          existing.gpsReal = true; existing.locationSharing = true;
+          // Redraw route if driver moved
+          if(moved){
+            routeCache = {};
+            const al = getDriverLoad(existing.id);
+            if(al){
+              if(routeLines[existing.id]){ routeLines[existing.id].remove(); delete routeLines[existing.id]; }
+              drawDriverRoute(existing, al);
+            }
+          }
+        }
       }
     });
     renderMarkers(); updateMapStats(); renderDriversTable();
@@ -598,15 +649,26 @@ function fbListenDrivers(){
   // ── Listen to driver locations + docs ──
   window._fb.onValue(window._fb.ref(window._fb.db,'fleet/drivers'),snap=>{
     const data=snap.val()||{};
+    const driversWithUpdatedLocation = [];
     Object.entries(data).forEach(([id,d])=>{
       const drv=drivers.find(x=>String(x.id)===String(id));
       if(!drv) return;
       if(d.location&&d.location.lat){
         const l=d.location;
+        const moved = drv.lat !== l.lat || drv.lng !== l.lng;
         drv.lat=l.lat; drv.lng=l.lng;
         drv.speed=l.speed||drv.speed;
         drv.city=l.city||drv.city;
         drv.gpsReal=true; drv.status='active'; drv.locationSharing=true;
+        // If driver moved, clear their route cache so route redraws from new position
+        if(moved){
+          driversWithUpdatedLocation.push(drv);
+          // Clear cache entries for this driver so route gets recomputed
+          Object.keys(routeCache).forEach(k => {
+            if(k.startsWith(l.lat.toFixed(1)) || k.startsWith(drv.lat.toFixed(1))) delete routeCache[k];
+          });
+          routeCache = {}; // full clear — routes are fast to re-fetch
+        }
       }
       if(d.docs){
         Object.entries(d.docs).forEach(([k,v])=>{
@@ -620,6 +682,15 @@ function fbListenDrivers(){
       }
     });
     renderMarkers(); updateMapStats();
+    // Update route lines for drivers whose location changed
+    driversWithUpdatedLocation.forEach(drv => {
+      const al = getDriverLoad(drv.id);
+      if(al) {
+        // Remove old cached route line and redraw from new position
+        if(routeLines[drv.id]) { routeLines[drv.id].remove(); delete routeLines[drv.id]; }
+        drawDriverRoute(drv, al);
+      }
+    });
     if(document.getElementById('view-drivers').classList.contains('active')) renderDriversTable();
   });
 }
@@ -850,6 +921,24 @@ function doLogin(user){
       requestDriverNotifPermission();
       fbListenDriverLoads(user.id);
     }, 1000);
+    // Auto-restart GPS if driver had it active in previous session
+    setTimeout(()=>{
+      const wasActive = localStorage.getItem('bg_gps_active') === '1';
+      if(wasActive && navigator.geolocation){
+        showToast('📍 Resuming location sharing…');
+        startDrvGPS(user.id);
+      }
+    }, 2000);
+    // Keep GPS alive — restart if page becomes visible again after being hidden
+    document.addEventListener('visibilitychange', ()=>{
+      if(document.visibilityState === 'visible' && currentUser?.role === 'driver'){
+        const wasActive = localStorage.getItem('bg_gps_active') === '1';
+        if(wasActive && !gpsActive){
+          showToast('📍 Resuming location…');
+          startDrvGPS(currentUser.id);
+        }
+      }
+    });
   }
 }
 
@@ -1279,7 +1368,13 @@ function rejDoc(dId,n){const d=drivers.find(x=>x.id===dId);const doc=d?.docs.fin
 function renderPLoads(body){
   const d=selDriver;
   const dLoads=loads.filter(l=>l.driverId===d.id);
-  body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:13px;font-weight:700;color:var(--g900)">${dLoads.length} load(s)</div><button class="asbtn" onclick="openAssign(${d.id},'driver')">+ Assign Load</button></div>
+  body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:700;color:var(--g900)">${dLoads.length} load(s)</div>
+    <div style="display:flex;gap:6px">
+      <button class="abtn" onclick="Object.keys(loadDocListeners).forEach(id=>{loadDocListeners[id]=false;fbListenLoadDocs(id)});renderPLoads(document.getElementById('dp-body'))" title="Refresh documents">↻ Refresh Docs</button>
+      <button class="asbtn" onclick="openAssign(${d.id},'driver')">+ Assign Load</button>
+    </div>
+  </div>
     ${dLoads.length===0?`<div style="text-align:center;padding:30px;color:var(--g400);font-size:13px">No loads assigned</div>`:''}
     ${dLoads.sort((a,b)=>b.createdAt-a.createdAt).map(l=>`
     <div class="titem" style="border-left:3px solid ${l.status==='delivered'?'var(--green)':l.status==='in_progress'?'var(--amber)':l.status==='assigned'?'#333':'var(--g200)'}">
@@ -1543,9 +1638,6 @@ function openImgPreview(dataUrl, filename){
   document.body.appendChild(m);
 }
 
-// Load document storage: loadDocs[loadId][stage][key] = {file, dataUrl, ts}
-let loadDocs = {};
-
 function getLoadDocs(loadId){
   const ld = loadDocs[loadId]||{};
   let count = 0;
@@ -1585,6 +1677,8 @@ function drvUploadLoadDoc(loadId, stage, key, label){
       loadDocs[loadId][stage][key] = { file:f.name, dataUrl, ts:Date.now() };
       // Push to Firebase under fleet/loads/{loadId}/docs/{stage}/{key}
       fbUpd('fleet/loads/'+loadId+'/docs/'+stage+'/'+key, { file:f.name, dataUrl, ts:Date.now() });
+      // Start listening to this load's docs (for manager real-time sync)
+      fbListenLoadDocs(loadId);
       // Also notify manager via chat if driver has id
       const dId = currentUser?.id;
       if(dId){
@@ -1640,8 +1734,9 @@ function startDrvGPS(dId){
       fbUpd('fleet/drivers/'+dId+'/location', locData);
       fbUpd('fleet/registered_drivers/'+dId, {lat,lng,status:'active',speed:d?.speed||'0 mph'});
 
-      showToast('📍 Location shared successfully!');
-      renderDrvDash();
+      showToast('📍 Location sharing started');
+  renderDrvDash();
+  localStorage.setItem('bg_gps_active','1');
 
       // Now start continuous watch
       if(gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
@@ -1696,6 +1791,7 @@ function stopDrvGPS(dId){
   fbUpd('fleet/drivers/'+dId+'/location',{active:false});
   showToast('Location sharing stopped');
   renderDrvDash();
+  localStorage.removeItem('bg_gps_active');
 }
 
 // ════ DRIVER DOC UPLOAD ════
