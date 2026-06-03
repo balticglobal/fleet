@@ -569,24 +569,32 @@ function fbListenLoads(){
   if(!fbMode)return;
   window._fb.onValue(window._fb.ref(window._fb.db,'fleet/loads'),snap=>{
     const data=snap.val()||{};
+    // Rebuild loads array fresh from Firebase each time to avoid duplicates
+    const fbLoads = [];
     Object.entries(data).forEach(([id,l])=>{
-      const idx=loads.findIndex(x=>x.id===id);
-      if(idx===-1)loads.push({...l,id});else loads[idx]={...l,id};
-      // Sync docs from snapshot
+      fbLoads.push({...l,id});
+      // Sync docs
       if(l.docs){
         if(!loadDocs[id]) loadDocs[id]={};
         Object.entries(l.docs).forEach(([stage,keys])=>{
           if(!loadDocs[id][stage]) loadDocs[id][stage]={};
-          if(keys && typeof keys === 'object') {
+          if(keys && typeof keys==='object'){
             Object.entries(keys).forEach(([k,v])=>{ loadDocs[id][stage][k]=v; });
           }
         });
       }
-      // Start dedicated docs listener for each load
       fbListenLoadDocs(id);
     });
+    // Replace loads array entirely — no merging that causes duplicates
+    loads.length = 0;
+    // Deduplicate by ID (keep highest createdAt if somehow duplicated)
+    const seen = {};
+    fbLoads.forEach(l => {
+      if(!seen[l.id] || l.createdAt > seen[l.id].createdAt) seen[l.id] = l;
+    });
+    Object.values(seen).forEach(l => loads.push(l));
+    // Also remove any local-only loads that were created before FB confirmed them
     renderLoads();updateRouteBadge();updateMapStats();
-    // Refresh panel if viewing loads
     if(currentUser?.role==='manager'&&curPTab==='loads'&&selDriver){
       renderPLoads(document.getElementById('dp-body'));
     }
@@ -1195,7 +1203,10 @@ function saveLoad(){
     driverId:parseInt(document.getElementById('l-driver').value)||null,
     status:document.getElementById('l-driver').value?'assigned':'new',
     createdAt:Date.now()};
-  loads.push(load);fbSet('fleet/loads/'+load.id,load);
+  // Push to Firebase — the onValue listener will add it to local array automatically
+  fbSet('fleet/loads/'+load.id,load);
+  // If no Firebase, add locally
+  if(!fbMode) loads.push(load);
   closeAddLoad();showToast(`${load.id} created`);
   if(load.driverId){const d=drivers.find(x=>x.id===load.driverId);if(d){const msg={id:'m_'+Date.now(),from:'manager',fromName:'Manager',text:`📦 New load: ${origin} → ${dest} | ${load.cargo} | ${fmtM(load.rate)} | Pickup: ${load.pickupDate||'TBD'}`,ts:Date.now(),read:false};addMsg(load.driverId,msg);fbSet('fleet/messages/'+load.driverId+'/'+msg.id,msg);}}
   renderLoads();updateRouteBadge();updateMapStats();renderMarkers();
