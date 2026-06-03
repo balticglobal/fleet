@@ -1398,6 +1398,9 @@ function renderPLoads(body){
       </div>
       <div class="tmeta"><span>${l.id}</span><span>${l.cargo}</span><span style="color:var(--green);font-weight:700">${fmtM(l.rate)}</span><span>${l.miles}</span></div>
       <div class="tmeta" style="margin-top:3px"><span>Pickup: ${l.pickupDate||'—'}</span><span>Delivery: ${l.deliveryDate||'—'}</span></div>
+      ${l.substatus?`<div style="margin-top:5px;padding:5px 9px;background:${l.substatus==='arrived_delivery'?'var(--gbg)':'var(--abg)'};border-radius:6px;font-size:11px;font-weight:600;color:${l.substatus==='arrived_delivery'?'var(--green)':'var(--amber)'}">
+        ${{arrived_pickup:'📍 Driver arrived at pickup',departed_pickup:'🚛 Departed pickup — en route',arrived_delivery:'📍 Driver arrived at delivery'}[l.substatus]||l.substatus}
+      </div>`:''}
       ${l.notes?`<div style="margin-top:5px;font-size:11px;color:var(--g500)">${l.notes}</div>`:''}
       ${buildMgrLoadDocs(l.id)}
       ${l.status==='assigned'?`<div style="margin-top:8px;display:flex;gap:6px"><button class="lacbtn" onclick="updLoad('${l.id}','in_progress');setPTab('loads')">▶ Start</button><button class="lacbtn danger" onclick="updLoad('${l.id}','cancelled');setPTab('loads')">Cancel</button></div>`:''}
@@ -1513,9 +1516,9 @@ function renderDrvDash(){
     <!-- My Loads -->
     <div id="drv-loads" style="margin-bottom:14px">
       <div style="font-size:15px;font-weight:700;color:var(--g900);margin-bottom:10px">My Loads <span style="font-size:12px;color:var(--g400);font-weight:500">(${myLoads.length})</span></div>
-      ${myLoads.length===0?`<div style="background:#fff;border:1.5px solid var(--g200);border-radius:12px;padding:28px;text-align:center;color:var(--g400);font-size:13px">No loads assigned yet. Your manager will assign you a shipment.</div>`:''}
+      ${myLoads.length===0?`<div style="background:#fff;border:1.5px solid var(--g200);border-radius:12px;padding:28px;text-align:center;color:var(--g400);font-size:13px">No loads assigned yet.<br>Your manager will assign you a shipment.</div>`:''}
       ${myLoads.sort((a,b)=>b.createdAt-a.createdAt).map(l=>`
-      <div style="background:#fff;border:1.5px solid ${l.status==='in_progress'?'var(--amber)':l.status==='delivered'?'var(--green)':l.status==='assigned'?'#333':'var(--g200)'};border-radius:12px;overflow:hidden;margin-bottom:12px">
+      <div style="background:#fff;border:1.5px solid ${l.status==='in_progress'?'var(--amber)':l.status==='delivered'?'var(--green)':l.status==='assigned'?'#333':'var(--g200)'};border-radius:12px;overflow:hidden;margin-bottom:14px">
 
         <!-- Load Header -->
         <div style="padding:14px 16px;border-bottom:1px solid var(--g100)">
@@ -1528,48 +1531,92 @@ function renderDrvDash(){
             <div><div class="lmi-lbl">Pay</div><div style="font-weight:700;color:var(--green)">${fmtM(l.rate)}</div></div>
             <div><div class="lmi-lbl">Pickup Date</div><div style="font-weight:600">${l.pickupDate||'—'}</div></div>
             <div><div class="lmi-lbl">Delivery Date</div><div style="font-weight:600">${l.deliveryDate||'—'}</div></div>
+            <div><div class="lmi-lbl">Miles</div><div style="font-weight:600">${l.miles||'—'}</div></div>
+            <div><div class="lmi-lbl">Load ID</div><div style="font-family:var(--mono);font-size:11px">${l.id}</div></div>
           </div>
           ${l.notes?`<div style="margin-top:8px;padding:7px 9px;background:var(--g50);border-radius:7px;font-size:12px;color:#475569">${l.notes}</div>`:''}
         </div>
 
-        <!-- STEP 1 — START TRIP -->
+        <!-- WORKFLOW STEPS -->
         ${l.status==='assigned'?`
-        <div style="padding:14px 16px;background:var(--g50);border-bottom:1px solid var(--g100)">
-          <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Step 1 — Ready to Pick Up?</div>
-          <button class="bprimary" style="width:100%;padding:11px" onclick="drvUpdLoad('${l.id}','in_progress')">🚛 Start Trip — At Shipper</button>
+        <div style="padding:14px 16px;background:var(--g50)">
+          <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">📍 Next Step</div>
+          <div style="font-size:13px;color:var(--g500);margin-bottom:12px">Head to the pickup location in <b>${l.origin.split(',')[0]}</b></div>
+          <button class="bprimary" style="width:100%;padding:13px;font-size:14px" onclick="drvSetSubstatus('${l.id}','arrived_pickup')">
+            📍 Arrived at Pickup
+          </button>
         </div>`:''}
 
-        <!-- STEP 2 — AT PICKUP: upload BOL + photos before delivery -->
-        ${l.status==='in_progress'?`
+        ${l.substatus==='arrived_pickup'?`
         <div style="padding:14px 16px;border-bottom:1px solid var(--g100)">
-          <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">📦 Pickup Documents</div>
-          <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <div style="width:24px;height:24px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">✓</div>
+            <div style="font-size:13px;font-weight:700;color:#16a34a">Arrived at Pickup — ${l.origin.split(',')[0]}</div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">📦 Upload Pickup Documents</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
             ${buildDocSlot(l.id,'pickup','bol','Bill of Lading (BOL)')}
             ${buildDocSlot(l.id,'pickup','photo1','Loaded Photo 1')}
             ${buildDocSlot(l.id,'pickup','photo2','Loaded Photo 2')}
           </div>
-        </div>
-        <div style="padding:14px 16px;background:var(--g50)">
-          <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Step 3 — At Delivery Location?</div>
-          <div style="font-size:12px;color:var(--g400);margin-bottom:10px">Upload BOL and photos first, then mark as delivered.</div>
+          <button class="bprimary" style="width:100%;padding:13px;font-size:14px" onclick="drvSetSubstatus('${l.id}','departed_pickup')">
+            🚛 Departed — Heading to Delivery
+          </button>
+        </div>`:''}
+
+        ${l.substatus==='departed_pickup'||(!l.substatus&&l.status==='in_progress')?`
+        <div style="padding:14px 16px;border-bottom:1px solid var(--g100)">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:24px;height:24px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">✓</div>
+              <div style="font-size:12px;font-weight:600;color:#16a34a">Picked Up — ${l.origin.split(',')[0]}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px">🚛</div>
+              <div style="font-size:12px;font-weight:700;color:var(--amber)">En Route to ${l.dest.split(',')[0]}</div>
+            </div>
+          </div>
+          ${buildDocSlot(l.id,'pickup','bol','Bill of Lading (BOL)')}
+          <div style="margin-top:12px">
+          <button class="bprimary" style="width:100%;padding:13px;font-size:14px" onclick="drvSetSubstatus('${l.id}','arrived_delivery')">
+            📍 Arrived at Delivery
+          </button>
+          </div>
+        </div>`:''}
+
+        ${l.substatus==='arrived_delivery'?`
+        <div style="padding:14px 16px;border-bottom:1px solid var(--g100)">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:24px;height:24px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">✓</div>
+              <div style="font-size:12px;font-weight:600;color:#16a34a">Picked Up — ${l.origin.split(',')[0]}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:24px;height:24px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">✓</div>
+              <div style="font-size:12px;font-weight:600;color:#16a34a">Arrived at ${l.dest.split(',')[0]}</div>
+            </div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">📋 Upload Delivery Documents</div>
           <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
             ${buildDocSlot(l.id,'delivery','pod','Proof of Delivery (POD)')}
             ${buildDocSlot(l.id,'delivery','bol_signed','Signed BOL')}
             ${buildDocSlot(l.id,'delivery','photo1','Unloaded Photo 1')}
             ${buildDocSlot(l.id,'delivery','photo2','Unloaded Photo 2')}
           </div>
-          <button class="bprimary" style="width:100%;padding:11px;background:var(--green)" onclick="drvMarkDelivered('${l.id}')">✓ Mark as Delivered</button>
+          <button class="bprimary" style="width:100%;padding:13px;font-size:14px;background:var(--green)" onclick="drvMarkDelivered('${l.id}')">
+            ✓ Mark as Delivered
+          </button>
         </div>`:''}
 
-        <!-- DELIVERED summary -->
+        <!-- DELIVERED -->
         ${l.status==='delivered'?`
         <div style="padding:14px 16px;background:var(--gbg)">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-            <div style="width:28px;height:28px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">✓</div>
-            <div style="font-size:14px;font-weight:700;color:var(--green)">Delivered Successfully</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px">✓</div>
+            <div style="font-size:15px;font-weight:700;color:var(--green)">Delivered Successfully</div>
           </div>
-          <div style="font-size:12px;color:var(--g500)">All documents submitted. Load ID: ${l.id}</div>
-          ${getLoadDocs(l.id)?`<div style="margin-top:8px;font-size:11px;color:var(--green)">📎 ${getLoadDocs(l.id)} document(s) uploaded</div>`:''}
+          <div style="font-size:12px;color:var(--g500)">${l.origin.split(',')[0]} → ${l.dest.split(',')[0]} · Load ${l.id}</div>
+          ${getLoadDocs(l.id)?`<div style="margin-top:6px;font-size:12px;color:var(--green);font-weight:600">📎 ${getLoadDocs(l.id)} document(s) on file</div>`:''}
         </div>`:''}
 
       </div>`).join('')}
@@ -1741,6 +1788,30 @@ function drvUploadLoadDoc(loadId, stage, key, label){
     }
   };
   inp.click();
+}
+
+function drvUpdLoad(id,status){updLoad(id,status);setTimeout(renderDrvDash,150);}
+
+function drvSetSubstatus(loadId, substatus){
+  const l = loads.find(x=>x.id===loadId);
+  if(!l) return;
+  l.substatus = substatus;
+  if(substatus==='departed_pickup'||substatus==='arrived_pickup') l.status='in_progress';
+  fbUpd('fleet/loads/'+loadId, { substatus, status:l.status, ['ts_'+substatus]: Date.now() });
+  const tsMap = {
+    arrived_pickup:  '\u{1F4CD} Arrived at pickup',
+    departed_pickup: '\u{1F69B} Departed pickup — en route',
+    arrived_delivery:'\u{1F4CD} Arrived at delivery'
+  };
+  const dId = currentUser?.id;
+  if(dId && tsMap[substatus]){
+    const msg={id:'m_'+Date.now(),from:'driver',fromName:currentUser?.name||'Driver',
+      text:tsMap[substatus]+' for load '+loadId+' ('+l.origin.split(',')[0]+' \u2192 '+l.dest.split(',')[0]+')',
+      ts:Date.now(),read:false};
+    addMsg(dId,msg); fbSet('fleet/messages/'+dId+'/'+msg.id,msg);
+  }
+  if('vibrate' in navigator) navigator.vibrate([100,50,100]);
+  renderDrvDash();
 }
 
 function drvMarkDelivered(loadId){
