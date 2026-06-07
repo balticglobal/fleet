@@ -742,10 +742,10 @@ function fbListenDriverLoads(dId){
       const isMyLoad = String(l.driverId) === String(dId);
       const isNewToMe = !knownLoadIds.has(id);
 
-      // Add to local loads array
+      // Sync to local loads array without wiping
       const idx = loads.findIndex(x => x.id === id);
       if(idx === -1) loads.push({...l, id});
-      else loads[idx] = {...l, id};
+      else loads[idx] = {...loads[idx], ...l, id};
 
       // Detect newly assigned load
       if(isMyLoad && isNewToMe && (l.status === 'assigned' || l.status === 'in_progress')){
@@ -1259,8 +1259,17 @@ function renderLoads(){
 
 function updLoad(id,status){
   const l=loads.find(x=>x.id===id);if(!l)return;
-  l.status=status;fbUpd('fleet/loads/'+id,{status});
-  showToast(`${id} → ${status.replace('_',' ')}`);
+  l.status=status;
+  const ts=Date.now();
+  const update={status};
+  if(status==='delivered'){update.deliveredAt=ts;}
+  if(status==='in_progress'){update.startedAt=ts;}
+  if(status==='cancelled'){update.cancelledAt=ts;}
+  Object.assign(l,update);
+  // Write full load object to Firebase so nothing gets lost
+  const loadToSave={...l};
+  fbSet('fleet/loads/'+id, loadToSave);
+  showToast(id+' \u2192 '+status.replace('_',' '));
   renderLoads();updateRouteBadge();updateMapStats();renderMarkers();
   if(curPTab==='loads'&&selDriver)renderPLoads(document.getElementById('dp-body'));
 }
@@ -1797,7 +1806,10 @@ function drvSetSubstatus(loadId, substatus){
   if(!l) return;
   l.substatus = substatus;
   if(substatus==='departed_pickup'||substatus==='arrived_pickup') l.status='in_progress';
-  fbUpd('fleet/loads/'+loadId, { substatus, status:l.status, ['ts_'+substatus]: Date.now() });
+  l.substatus = substatus;
+  const update = { substatus, status:l.status, ['ts_'+substatus]: Date.now() };
+  Object.assign(l, update);
+  fbSet('fleet/loads/'+loadId, {...l});
   const tsMap = {
     arrived_pickup:  '\u{1F4CD} Arrived at pickup',
     departed_pickup: '\u{1F69B} Departed pickup — en route',
@@ -1815,14 +1827,19 @@ function drvSetSubstatus(loadId, substatus){
 }
 
 function drvMarkDelivered(loadId){
-  // Check required delivery docs
-  const ld = loadDocs[loadId]||{};
-  const hasPOD = !!(ld.delivery?.pod || ld.delivery?.bol_signed);
+  const l = loads.find(x=>x.id===loadId);
+  if(!l) return;
+  const hasPOD = !!(loadDocs[loadId]?.delivery?.pod || loadDocs[loadId]?.delivery?.bol_signed);
   if(!hasPOD){
     if(!confirm('You haven\'t uploaded a Proof of Delivery or Signed BOL yet.\n\nMark as delivered anyway?')) return;
   }
-  drvUpdLoad(loadId, 'delivered');
+  l.status = 'delivered';
+  l.deliveredAt = Date.now();
+  l.substatus = 'delivered';
+  // Write full load to Firebase
+  fbSet('fleet/loads/'+loadId, {...l});
   showToast('✓ Load marked as delivered!');
+  renderDrvDash();
 }
 
 function sendDrvMsg(dId){
